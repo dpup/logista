@@ -24,7 +24,13 @@ my-server | logista --fmt="{timestamp} [{level}] {message}"
 my-server | logista --fmt="{timestamp | date} [{level}] {message}"
 
 # Custom date format
-my-server | logista --fmt="{timestamp | date} [{level}] {message}" --preferred_date_format="02/01/2006 15:04:05"
+my-server | logista --fmt="{timestamp | date} [{level}] {message}" --preferred_date_format="15:04:05"
+
+# With colored output
+my-server | logista --fmt="<cyan>{timestamp | date}</> <bold {level | levelColor}>[{level}]</> {message}"
+
+# Disable colors
+my-server | logista --fmt="<red>{level}</> {message}" --no-colors
 
 # Help
 logista --help
@@ -52,6 +58,7 @@ Logista supports template functions that can transform field values. To use a fu
 #### Available Functions
 
 - **date**: Parses dates in various formats into a standardized format. Works with:
+
   - ISO 8601 timestamps: `2024-03-10T15:04:05Z`
   - Unix timestamps: `1741626507` (seconds since epoch)
   - Unix timestamps with fractional seconds: `1741626507.9066188`
@@ -59,6 +66,42 @@ Logista supports template functions that can transform field values. To use a fu
   - Many other common formats
 
   Use `--preferred_date_format` to set the output format in Go's time format syntax.
+
+- **levelColor**: Automatically applies appropriate colors based on log level:
+
+  - `error`, `fatal`, `critical`, etc. → red
+  - `warn`, `warning` → yellow
+  - `info` → green
+  - `debug` → cyan
+  - `trace` → blue
+
+  Example use `<bold {level | levelColor}>{message}</>`
+
+### Color Tags
+
+You can add color to your output using HTML-like color tags:
+
+```
+<red>This text will be red</>
+```
+
+Available color tags:
+
+- Foreground colors: `black`, `red`, `green`, `yellow`, `blue`, `magenta`, `cyan`, `white`, `gray`
+- Bright colors: `brightred`, `brightgreen`, `brightyellow`, `brightblue`, `brightmagenta`, `brightcyan`, `brightwhite`
+- Background colors: `bg-black`, `bg-red`, `bg-green`, `bg-yellow`, `bg-blue`, `bg-magenta`, `bg-cyan`, `bg-white`, `bg-gray`
+- Bright backgrounds: `bg-brightred`, `bg-brightgreen`, `bg-brightyellow`, `bg-brightblue`, `bg-brightmagenta`, `bg-brightcyan`, `bg-brightwhite`
+- Formatting: `bold`, `italic`, `underline`, `dim`
+
+You can combine multiple styles by adding spaces:
+
+```
+<bold red>Bold red text</>
+```
+
+For simplicity, you can use `</>` as a universal closing tag, or use traditional HTML-style tags like `</red>` if you prefer.
+
+Colors can be disabled with the `--no-colors` flag.
 
 ## Building from Source
 

@@ -29,7 +29,9 @@ shell-test:
 
 # Run the tool manually with test logs
 run-test: build
-	cat test/test-logs.json | ${DIST_DIR}/${BINARY_NAME}
+	cat test/test-logs.json | ${DIST_DIR}/${BINARY_NAME}  \
+		--preferred_date_format="15:04:05" \
+		--fmt="<cyan>{timestamp | date}</cyan> <bold {level | levelColor}>[{level}]</bold {level | levelColor}> {message}"
 
 # Run tests with coverage
 test-coverage:

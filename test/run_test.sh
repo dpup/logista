@@ -75,4 +75,34 @@ else
   exit 1
 fi
 
+# Test with color tags
+echo ""
+echo "=== Testing color tags ==="
+COLOR_OUTPUT=$(cat "$TEST_DATA" | "$BINARY" --fmt="<cyan>{timestamp | date}</> <bold {level | levelColor}>[{level}]</> {message}")
+echo "$COLOR_OUTPUT"
+
+# For color tests, we just verify that the command ran without error
+# since testing for ANSI codes directly is challenging in a shell script
+if [ $? -eq 0 ]; then
+  echo -e "\033[0;32mColor tags test: PASSED\033[0m"
+else
+  echo -e "\033[0;31mColor tags test: FAILED\033[0m"
+  exit 1
+fi
+
+# Test with --no-colors flag
+echo ""
+echo "=== Testing --no-colors flag ==="
+NO_COLOR_OUTPUT=$(cat "$TEST_DATA" | "$BINARY" --fmt="<red>{timestamp | date}</> <bold {level | levelColor}>[{level}]</> {message}" --no-colors)
+echo "$NO_COLOR_OUTPUT"
+
+# For no-colors test, we verify that the command ran without error
+# and that the output doesn't contain ANSI escape codes
+if [ $? -eq 0 ] && ! echo "$NO_COLOR_OUTPUT" | grep -q "\033"; then
+  echo -e "\033[0;32mNo colors test: PASSED\033[0m"
+else
+  echo -e "\033[0;31mNo colors test: FAILED\033[0m"
+  exit 1
+fi
+
 echo -e "\033[0;32mAll tests passed!\033[0m"

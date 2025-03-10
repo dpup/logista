@@ -19,6 +19,7 @@ type Formatter interface {
 type TemplateFormatter struct {
 	template         *template.Template
 	preferredDateFmt string
+	noColors         bool
 }
 
 // FormatterOption is a functional option for configuring the formatter
@@ -28,6 +29,13 @@ type FormatterOption func(*TemplateFormatter)
 func WithPreferredDateFormat(format string) FormatterOption {
 	return func(tf *TemplateFormatter) {
 		tf.preferredDateFmt = format
+	}
+}
+
+// WithNoColors disables color output
+func WithNoColors(noColors bool) FormatterOption {
+	return func(tf *TemplateFormatter) {
+		tf.noColors = noColors
 	}
 }
 
@@ -49,7 +57,8 @@ func NewTemplateFormatter(format string, opts ...FormatterOption) (*TemplateForm
 
 	// Create template with custom functions
 	tmpl := template.New("formatter").Funcs(template.FuncMap{
-		"date": formatter.dateFunc,
+		"date":       formatter.dateFunc,
+		"levelColor": formatter.levelColorFunc,
 	})
 
 	parsed, err := tmpl.Parse(goTmplFormat)
@@ -59,6 +68,42 @@ func NewTemplateFormatter(format string, opts ...FormatterOption) (*TemplateForm
 
 	formatter.template = parsed
 	return formatter, nil
+}
+
+// levelColorFunc applies color based on log level
+func (f *TemplateFormatter) levelColorFunc(level interface{}) string {
+	if level == nil {
+		return ""
+	}
+
+	levelStr := strings.Map(func(r rune) rune {
+		if !strings.ContainsRune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", r) {
+			return -1
+		}
+		return r
+	}, fmt.Sprintf("%v", level))
+
+	var colorTag string
+	switch strings.ToLower(levelStr) {
+	case "error", "err", "fatal", "crit", "critical", "alert", "emergency":
+		colorTag = "red"
+	case "warn", "warning":
+		colorTag = "yellow"
+	case "info", "information":
+		colorTag = "green"
+	case "debug":
+		colorTag = "cyan"
+	case "trace":
+		colorTag = "blue"
+	default:
+		colorTag = "white"
+	}
+
+	if f.noColors {
+		return "none"
+	}
+
+	return colorTag
 }
 
 // dateFunc is a template function that parses various date formats and outputs a standard format
@@ -129,7 +174,10 @@ func (f *TemplateFormatter) Format(data map[string]interface{}) (string, error) 
 	if err := f.template.Execute(&buf, data); err != nil {
 		return "", err
 	}
-	return buf.String(), nil
+
+	// Process color tags
+	result := buf.String()
+	return ApplyColors(result, f.noColors), nil
 }
 
 // ProcessStream processes JSON logs from a reader and writes formatted output to a writer
