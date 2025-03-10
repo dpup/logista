@@ -1,0 +1,3 @@
+{"timestamp":"2025-03-10T15:04:05Z","level":"info","message":"Application started","context":{"version":"1.0.0"}}
+{"timestamp":"2025-03-10T15:04:06Z","level":"debug","message":"Configuration loaded","context":{"config_file":"config.json"}}
+{"timestamp":"2025-03-10T15:04:07Z","level":"error","message":"Failed to connect to database","error":"connection refused","context":{"db_host":"localhost:5432"}}

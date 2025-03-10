@@ -1,0 +1,92 @@
+linters:
+  disable-all: true
+  enable:
+  - bodyclose
+  - depguard
+  - dogsled
+  - dupl
+  - errcheck
+  - copyloopvar
+  - funlen
+  - goconst
+  - gocritic
+  - gocyclo
+  - gofmt
+  - goimports
+  - goprintffuncname
+  - gosec
+  - gosimple
+  - govet
+  - ineffassign
+  - misspell
+  - nakedret
+  - noctx
+  - nolintlint
+  - revive
+  - staticcheck
+  - stylecheck
+  - typecheck
+  - unconvert
+  - unparam
+  - unused
+  - whitespace
+
+linters-settings:
+  dupl:
+    threshold: 100
+  funlen:
+    lines: 100
+    statements: 50
+  gocognit:
+    min-complexity: 15
+  gocyclo:
+    min-complexity: 15
+  goconst:
+    min-len: 2
+    min-occurrences: 2
+  gocritic:
+    enabled-tags:
+    - diagnostic
+    - experimental
+    - opinionated
+    - performance
+    - style
+  goimports:
+    local-prefixes: github.com/dpup/logista
+  golint:
+    min-confidence: 0
+  nakedret:
+    max-func-lines: 30
+  nolintlint:
+    require-explanation: true
+    require-specific: true
+  revive:
+    severity: error
+  stylecheck:
+    checks: [ "all" ]
+  depguard:
+    rules:
+      main:
+        allow:
+        - $gostd
+        - github.com/dpup/logista
+        - github.com/spf13/cobra
+        - github.com/spf13/viper
+
+issues:
+  exclude-rules:
+  - path: _test\.go
+    linters:
+    - dupl
+    - funlen
+    - gosec
+  exclude-dirs:
+  - dist
+  exclude-files:
+  - ".*\\.pb\\.go$"
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+run:
+  timeout: 5m
+  tests: true
