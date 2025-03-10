@@ -9,7 +9,7 @@ make build
 
 # Path to the binary and test data
 BINARY="./dist/logista"
-TEST_DATA="./test/test-logs.json"
+TEST_DATA="./test/basic-logs.json"
 
 # Tests with default format
 echo "=== Testing default format ==="
