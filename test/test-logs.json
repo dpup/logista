@@ -1,3 +1,6 @@
 {"timestamp":"2025-03-10T15:04:05Z","level":"info","message":"Application started","context":{"version":"1.0.0"}}
 {"timestamp":"2025-03-10T15:04:06Z","level":"debug","message":"Configuration loaded","context":{"config_file":"config.json"}}
 {"timestamp":"2025-03-10T15:04:07Z","level":"error","message":"Failed to connect to database","error":"connection refused","context":{"db_host":"localhost:5432"}}
+{"timestamp":1741626507,"level":"info","message":"Log with unix timestamp"}
+{"timestamp":1741626507.9066188,"level":"warning","message":"Log with unix timestamp and milliseconds"}
+{"timestamp":"10/Mar/2025:15:04:05 +0000","level":"info","message":"Log with common log format"}

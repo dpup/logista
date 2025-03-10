@@ -53,8 +53,6 @@ linters-settings:
     - style
   goimports:
     local-prefixes: github.com/dpup/logista
-  golint:
-    min-confidence: 0
   nakedret:
     max-func-lines: 30
   nolintlint:
