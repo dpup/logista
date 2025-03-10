@@ -59,6 +59,7 @@ func NewTemplateFormatter(format string, opts ...FormatterOption) (*TemplateForm
 	tmpl := template.New("formatter").Funcs(template.FuncMap{
 		"date":       formatter.dateFunc,
 		"levelColor": formatter.levelColorFunc,
+		"pad":        formatter.padFunc,
 	})
 
 	parsed, err := tmpl.Parse(goTmplFormat)
@@ -104,6 +105,21 @@ func (f *TemplateFormatter) levelColorFunc(level interface{}) string {
 	}
 
 	return colorTag
+}
+
+// padFunc is a template function that pads a string to a specified length
+func (f *TemplateFormatter) padFunc(length int, value interface{}) string {
+	if value == nil {
+		return strings.Repeat(" ", length)
+	}
+
+	str := fmt.Sprintf("%v", value)
+	if len(str) >= length {
+		return str
+	}
+
+	// Add whitespace padding to the right of the string
+	return str + strings.Repeat(" ", length-len(str))
 }
 
 // dateFunc is a template function that parses various date formats and outputs a standard format

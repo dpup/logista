@@ -31,7 +31,7 @@ shell-test:
 run-test: build
 	cat test/test-logs.json | ${DIST_DIR}/${BINARY_NAME}  \
 		--preferred_date_format="15:04:05" \
-		--fmt="<cyan>{timestamp | date}</cyan> <bold {level | levelColor}>[{level}]</bold {level | levelColor}> {message}"
+		--fmt="<bold>{timestamp | date}</> <{level | levelColor}>{level | pad 7} : {message}</>"
 
 # Run tests with coverage
 test-coverage:

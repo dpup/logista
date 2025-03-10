@@ -115,6 +115,24 @@ func TestTemplateFormatter(t *testing.T) {
 			data:     map[string]interface{}{"level": "info"},
 			expected: "info <no value>",
 		},
+		{
+			name:     "pad function",
+			format:   `{level | pad 10} {message}`,
+			data:     map[string]interface{}{"level": "info", "message": "test message"},
+			expected: "info       test message",
+		},
+		{
+			name:     "pad function with longer text",
+			format:   `{level | pad 3} {message}`,
+			data:     map[string]interface{}{"level": "warning", "message": "test message"},
+			expected: "warning test message",
+		},
+		{
+			name:     "pad function with nil value",
+			format:   `{missing | pad 5} {message}`,
+			data:     map[string]interface{}{"message": "test message"},
+			expected: "      test message",
+		},
 	}
 
 	for _, tt := range tests {
