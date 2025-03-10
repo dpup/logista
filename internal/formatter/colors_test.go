@@ -4,187 +4,107 @@ import (
 	"testing"
 )
 
-func TestApplyColors(t *testing.T) {
+func TestApplyColorToString(t *testing.T) {
 	tests := []struct {
-		name        string
-		input       string
-		noColors    bool
-		expected    string
-		description string
-		skip        bool // Skip some tests that don't work with the simplified implementation
+		name      string
+		content   string
+		colorName string
+		noColors  bool
+		expected  string
 	}{
 		{
-			name:        "simple red text with standard closing tag",
-			input:       "<red>This is red</red>",
-			noColors:    false,
-			expected:    "\033[31mThis is red\033[0m",
-			description: "Basic red foreground color with standard closing tag",
+			name:      "red color",
+			content:   "This is red",
+			colorName: "red",
+			noColors:  false,
+			expected:  "\033[31mThis is red\033[0m",
 		},
 		{
-			name:        "simple red text with simplified closing tag",
-			input:       "<red>This is red</>",
-			noColors:    false,
-			expected:    "\033[31mThis is red\033[0m",
-			description: "Basic red foreground color with simplified closing tag",
+			name:      "blue color",
+			content:   "This is blue",
+			colorName: "blue",
+			noColors:  false,
+			expected:  "\033[34mThis is blue\033[0m",
 		},
 		{
-			name:        "multiple color tags with standard closing",
-			input:       "<red>Red</red> and <blue>Blue</blue>",
-			noColors:    false,
-			expected:    "\033[31mRed\033[0m and \033[34mBlue\033[0m",
-			description: "Multiple color tags in a string with standard closing",
+			name:      "bold formatting",
+			content:   "This is bold",
+			colorName: "bold",
+			noColors:  false,
+			expected:  "\033[1mThis is bold\033[0m",
 		},
 		{
-			name:        "multiple color tags with simplified closing",
-			input:       "<red>Red</> and <blue>Blue</>",
-			noColors:    false,
-			expected:    "\033[31mRed\033[0m and \033[34mBlue\033[0m",
-			description: "Multiple color tags in a string with simplified closing",
+			name:      "non-existent color",
+			content:   "Not colored",
+			colorName: "nonexistent",
+			noColors:  false,
+			expected:  "Not colored",
 		},
 		{
-			name:        "nested color tags",
-			input:       "<red>Red <bold>and bold</bold></red>",
-			noColors:    false,
-			expected:    "\033[31mRed \033[1mand bold\033[0m\033[0m",
-			description: "Nested color tags with different styles",
-		},
-		{
-			name:        "non-existent color",
-			input:       "<nonexistent>Not colored</nonexistent>",
-			noColors:    false,
-			expected:    "Not colored",
-			description: "Non-existent color tag should not apply styling",
-		},
-		{
-			name:        "multiple styles with standard closing",
-			input:       "<bold red>Bold and red</bold red>",
-			noColors:    false,
-			expected:    "\033[1;31mBold and red\033[0m",
-			description: "Multiple styles in a single tag with standard closing",
-		},
-		{
-			name:        "multiple styles with simplified closing",
-			input:       "<bold red>Bold and red</>",
-			noColors:    false,
-			expected:    "\033[1;31mBold and red\033[0m",
-			description: "Multiple styles in a single tag with simplified closing",
-		},
-		{
-			name:        "background color with standard closing",
-			input:       "<bg-green>Green background</bg-green>",
-			noColors:    false,
-			expected:    "\033[42mGreen background\033[0m",
-			description: "Background color style with standard closing",
-		},
-		{
-			name:        "background color with simplified closing",
-			input:       "<bg-green>Green background</>",
-			noColors:    false,
-			expected:    "\033[42mGreen background\033[0m",
-			description: "Background color style with simplified closing",
-		},
-		{
-			name:        "combined foreground and background with standard closing",
-			input:       "<red bg-yellow>Red text on yellow</red bg-yellow>",
-			noColors:    false,
-			expected:    "\033[31;43mRed text on yellow\033[0m",
-			description: "Combined foreground and background colors with standard closing",
-		},
-		{
-			name:        "combined foreground and background with simplified closing",
-			input:       "<red bg-yellow>Red text on yellow</>",
-			noColors:    false,
-			expected:    "\033[31;43mRed text on yellow\033[0m",
-			description: "Combined foreground and background colors with simplified closing",
-		},
-		{
-			name:        "no colors mode",
-			input:       "<red>Red</red> and <blue>Blue</blue>",
-			noColors:    true,
-			expected:    "Red and Blue",
-			description: "With noColors=true, tags should be stripped",
-		},
-		{
-			name:        "complex nesting",
-			input:       "<bold>Bold <italic>and italic <red>and red</red></italic></bold>",
-			noColors:    false,
-			expected:    "\033[1mBold \033[3mand italic \033[31mand red\033[0m\033[0m\033[0m",
-			description: "Complex nesting of styles",
-		},
-		{
-			name:        "tag with spaces and standard closing",
-			input:       "<bold  red>Bold and red</bold  red>",
-			noColors:    false,
-			expected:    "\033[1;31mBold and red\033[0m",
-			description: "Tags with extra spaces with standard closing",
-		},
-		{
-			name:        "tag with spaces and simplified closing",
-			input:       "<bold  red>Bold and red</>",
-			noColors:    false,
-			expected:    "\033[1;31mBold and red\033[0m",
-			description: "Tags with extra spaces with simplified closing",
+			name:      "none color",
+			content:   "No color",
+			colorName: "none",
+			noColors:  false,
+			expected:  "No color",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if tt.skip {
-				t.Skip("Test skipped - not supported")
-			}
-			result := ApplyColors(tt.input, tt.noColors)
+			result := ApplyColorToString(tt.content, tt.colorName)
 			if result != tt.expected {
-				t.Errorf("Expected: %q, Got: %q\nDescription: %s", tt.expected, result, tt.description)
+				t.Errorf("Expected: %q, Got: %q", tt.expected, result)
 			}
 		})
 	}
 }
 
-func TestStripColorTags(t *testing.T) {
+func TestColorByLevelName(t *testing.T) {
 	tests := []struct {
 		name     string
-		input    string
+		level    string
 		expected string
-		skip     bool // Skip some tests that don't yet work
 	}{
 		{
-			name:     "simple tag with standard closing",
-			input:    "<red>This is red</red>",
-			expected: "This is red",
+			name:     "error level",
+			level:    "error",
+			expected: "red",
 		},
 		{
-			name:     "simple tag with simplified closing",
-			input:    "<red>This is red</>",
-			expected: "This is red",
+			name:     "warning level",
+			level:    "warning",
+			expected: "yellow",
 		},
 		{
-			name:     "multiple tags with standard closing",
-			input:    "<red>Red</red> and <blue>Blue</blue>",
-			expected: "Red and Blue",
+			name:     "info level",
+			level:    "info",
+			expected: "green",
 		},
 		{
-			name:     "multiple tags with simplified closing",
-			input:    "<red>Red</> and <blue>Blue</>",
-			expected: "Red and Blue",
+			name:     "debug level",
+			level:    "debug",
+			expected: "cyan",
 		},
 		{
-			name:     "nested tags",
-			input:    "<red>Red <bold>and bold</bold></red>",
-			expected: "Red and bold",
+			name:     "trace level",
+			level:    "trace",
+			expected: "blue",
 		},
 		{
-			name:     "invalid tags",
-			input:    "No <tags> here",
-			expected: "No <tags> here",
+			name:     "unknown level",
+			level:    "unknown",
+			expected: "white",
+		},
+		{
+			name:     "case insensitive",
+			level:    "ERROR",
+			expected: "red",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if tt.skip {
-				t.Skip("Test skipped - not supported")
-			}
-			result := stripColorTags(tt.input)
+			result := ColorByLevelName(tt.level)
 			if result != tt.expected {
 				t.Errorf("Expected: %q, Got: %q", tt.expected, result)
 			}

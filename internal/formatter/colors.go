@@ -2,7 +2,6 @@ package formatter
 
 import (
 	"fmt"
-	"regexp"
 	"strings"
 )
 
@@ -58,83 +57,35 @@ var colorCodes = map[string]string{
 // Reset code
 const ansiReset = "\033[0m"
 
-// ApplyColors processes the input string and replaces color tags with ANSI color codes
-func ApplyColors(input string, noColors bool) string {
-	if noColors {
-		return stripColorTags(input)
-	}
-
-	// Simple tag pattern that supports both standard HTML-like tags and simplified </> closing tag
-	colorTagPattern := `<([^>]+)>([^<]*)(</[^>]*>|</>)`
-
-	// Process the string
-	result := input
-
-	// Iteratively apply color replacements, starting with the innermost tags
-	for {
-		re := regexp.MustCompile(colorTagPattern)
-		matches := re.FindStringSubmatchIndex(result)
-
-		if len(matches) == 0 {
-			break // No more color tags
-		}
-
-		// Extract tag name and content
-		tagNameStart, tagNameEnd := matches[2], matches[3]
-		contentStart, contentEnd := matches[4], matches[5]
-
-		tagName := result[tagNameStart:tagNameEnd]
-		content := result[contentStart:contentEnd]
-
-		// Apply color codes
-		colored := applyColorCode(tagName, content)
-
-		// Replace the tag in the result
-		result = result[:matches[0]] + colored + result[matches[1]:]
-	}
-
-	return result
-}
-
-// applyColorCode applies the ANSI color code for the given tag name to the content
-func applyColorCode(tagName string, content string) string {
-	// Handle multiple styles specified with spaces
-	styles := strings.Fields(tagName)
-
-	var codes []string
-	for _, style := range styles {
-		if code, ok := colorCodes[strings.ToLower(style)]; ok {
-			codes = append(codes, code)
-		}
-	}
-
-	if len(codes) == 0 {
-		// If no valid codes found, return content unchanged
+// ApplyColorToString applies a specific color to a string value
+func ApplyColorToString(content string, colorName string) string {
+	if colorName == "none" {
 		return content
 	}
-
-	// Combine all style codes
-	combinedCode := strings.Join(codes, ";")
-	return fmt.Sprintf("\033[%sm%s%s", combinedCode, content, ansiReset)
+	
+	if code, ok := colorCodes[colorName]; ok {
+		return fmt.Sprintf("\033[%sm%s%s", code, content, ansiReset)
+	}
+	
+	return content // Return unchanged if color not found
 }
 
-// stripColorTags removes color tags from the input string without applying colors
-func stripColorTags(input string) string {
-	// Pattern that supports both standard HTML-like tags and simplified </> closing tag
-	pattern := `<[^>]+>([^<]*)(</[^>]*>|</>)`
-	re := regexp.MustCompile(pattern)
-
-	// Iteratively strip tags, from innermost to outermost
-	result := input
-	for {
-		prevResult := result
-		result = re.ReplaceAllString(result, "$1")
-
-		// If no changes were made, we're done
-		if prevResult == result {
-			break
-		}
+// ColorByLevelName returns the appropriate color for a log level
+func ColorByLevelName(level string) string {
+	levelStr := strings.ToLower(level)
+	
+	switch levelStr {
+	case "error", "err", "fatal", "crit", "critical", "alert", "emergency":
+		return "red"
+	case "warn", "warning":
+		return "yellow"
+	case "info", "information":
+		return "green"
+	case "debug":
+		return "cyan"
+	case "trace":
+		return "blue"
+	default:
+		return "white"
 	}
-
-	return result
 }

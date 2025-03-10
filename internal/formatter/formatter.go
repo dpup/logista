@@ -20,6 +20,8 @@ type TemplateFormatter struct {
 	template         *template.Template
 	preferredDateFmt string
 	noColors         bool
+	standardFields   []string          // Fields considered standard (level, timestamp, message)
+	groupPrefixes    map[string]string // Mapping of group names to field prefixes (e.g. "grpc" -> "grpc.")
 }
 
 // FormatterOption is a functional option for configuring the formatter
@@ -39,15 +41,39 @@ func WithNoColors(noColors bool) FormatterOption {
 	}
 }
 
+// WithStandardFields defines which fields should be considered standard fields
+func WithStandardFields(fields []string) FormatterOption {
+	return func(tf *TemplateFormatter) {
+		tf.standardFields = fields
+	}
+}
+
+// WithGroupPrefixes defines prefixes for grouping related fields
+func WithGroupPrefixes(prefixes map[string]string) FormatterOption {
+	return func(tf *TemplateFormatter) {
+		tf.groupPrefixes = prefixes
+	}
+}
+
 // NewTemplateFormatter creates a new TemplateFormatter with the given format string
 func NewTemplateFormatter(format string, opts ...FormatterOption) (*TemplateFormatter, error) {
-	// Replace {field} with {{.field}} for Go template
-	goTmplFormat := strings.ReplaceAll(format, "{", "{{.")
-	goTmplFormat = strings.ReplaceAll(goTmplFormat, "}", "}}")
+	// Support both simple {field} syntax and full Go template {{.field}} syntax
+	// Replace {field} with {{.field}} for Go template if the simplified syntax is detected
+	hasSimpleSyntax := strings.Contains(format, "{") && !strings.Contains(format, "{{")
+	if hasSimpleSyntax {
+		format = strings.ReplaceAll(format, "{", "{{.")
+		format = strings.ReplaceAll(format, "}", "}}")
+	}
 
 	// Create the formatter with default values
 	formatter := &TemplateFormatter{
 		preferredDateFmt: "2006-01-02 15:04:05",
+		standardFields:   []string{"level", "ts", "time", "timestamp", "msg", "message", "logger", "caller"},
+		groupPrefixes: map[string]string{
+			"grpc": "grpc.",
+			"db":   "db.",
+			"http": "http.",
+		},
 	}
 
 	// Apply options
@@ -57,54 +83,33 @@ func NewTemplateFormatter(format string, opts ...FormatterOption) (*TemplateForm
 
 	// Create template with custom functions
 	tmpl := template.New("formatter").Funcs(template.FuncMap{
-		"date":       formatter.dateFunc,
-		"levelColor": formatter.levelColorFunc,
-		"pad":        formatter.padFunc,
+		// Value formatting
+		"date": formatter.dateFunc,
+		"pad":  formatter.padFunc,
+
+		// Color functions
+		"color":        formatter.colorFunc,
+		"colorByLevel": formatter.colorByLevelFunc,
+		"bold":         formatter.boldFunc,
+		"italic":       formatter.italicFunc,
+		"underline":    formatter.underlineFunc,
+		"dim":          formatter.dimFunc,
+
+		// Field filtering and categorization
+		"isStandardField":     formatter.isStandardFieldFunc,
+		"hasPrefix":           formatter.hasPrefixFunc,
+		"getFields":           formatter.getFieldsFunc,
+		"getFieldsWithout":    formatter.getFieldsWithoutFunc,
+		"getFieldsWithPrefix": formatter.getFieldsWithPrefixFunc,
 	})
 
-	parsed, err := tmpl.Parse(goTmplFormat)
+	parsed, err := tmpl.Parse(format)
 	if err != nil {
 		return nil, err
 	}
 
 	formatter.template = parsed
 	return formatter, nil
-}
-
-// levelColorFunc applies color based on log level
-func (f *TemplateFormatter) levelColorFunc(level interface{}) string {
-	if level == nil {
-		return ""
-	}
-
-	levelStr := strings.Map(func(r rune) rune {
-		if !strings.ContainsRune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", r) {
-			return -1
-		}
-		return r
-	}, fmt.Sprintf("%v", level))
-
-	var colorTag string
-	switch strings.ToLower(levelStr) {
-	case "error", "err", "fatal", "crit", "critical", "alert", "emergency":
-		colorTag = "red"
-	case "warn", "warning":
-		colorTag = "yellow"
-	case "info", "information":
-		colorTag = "green"
-	case "debug":
-		colorTag = "cyan"
-	case "trace":
-		colorTag = "blue"
-	default:
-		colorTag = "white"
-	}
-
-	if f.noColors {
-		return "none"
-	}
-
-	return colorTag
 }
 
 // padFunc is a template function that pads a string to a specified length
@@ -184,6 +189,139 @@ func (f *TemplateFormatter) dateFunc(value interface{}) string {
 	}
 }
 
+// colorFunc applies a specific color to a value
+// In Go templates with pipes, arguments are passed in reverse order
+// so {{.msg | color "red"}} passes "red" as first arg and msg as second arg
+func (f *TemplateFormatter) colorFunc(colorName string, value interface{}) string {
+	if f.noColors || value == nil {
+		return fmt.Sprintf("%v", value)
+	}
+
+	content := fmt.Sprintf("%v", value)
+	if code, ok := colorCodes[colorName]; ok {
+		return fmt.Sprintf("\033[%sm%s%s", code, content, ansiReset)
+	}
+
+	return content
+}
+
+// colorByLevelFunc applies color to a value based on the level
+// In Go templates with pipes, arguments are passed in reverse order
+// so {{.msg | colorByLevel .level}} passes level as first arg and msg as second arg
+func (f *TemplateFormatter) colorByLevelFunc(level interface{}, value interface{}) string {
+	if f.noColors || value == nil {
+		return fmt.Sprintf("%v", value)
+	}
+
+	if level == nil {
+		return fmt.Sprintf("%v", value)
+	}
+
+	content := fmt.Sprintf("%v", value)
+	levelStr := fmt.Sprintf("%v", level)
+
+	colorName := ColorByLevelName(levelStr)
+	if code, ok := colorCodes[colorName]; ok {
+		return fmt.Sprintf("\033[%sm%s%s", code, content, ansiReset)
+	}
+
+	return content
+}
+
+// boldFunc makes text bold
+func (f *TemplateFormatter) boldFunc(value interface{}) string {
+	if f.noColors || value == nil {
+		return fmt.Sprintf("%v", value)
+	}
+
+	content := fmt.Sprintf("%v", value)
+	return fmt.Sprintf("\033[1m%s%s", content, ansiReset)
+}
+
+// italicFunc makes text italic
+func (f *TemplateFormatter) italicFunc(value interface{}) string {
+	if f.noColors || value == nil {
+		return fmt.Sprintf("%v", value)
+	}
+
+	content := fmt.Sprintf("%v", value)
+	return fmt.Sprintf("\033[3m%s%s", content, ansiReset)
+}
+
+// underlineFunc underlines text
+func (f *TemplateFormatter) underlineFunc(value interface{}) string {
+	if f.noColors || value == nil {
+		return fmt.Sprintf("%v", value)
+	}
+
+	content := fmt.Sprintf("%v", value)
+	return fmt.Sprintf("\033[4m%s%s", content, ansiReset)
+}
+
+// dimFunc makes text dim
+func (f *TemplateFormatter) dimFunc(value interface{}) string {
+	if f.noColors || value == nil {
+		return fmt.Sprintf("%v", value)
+	}
+
+	content := fmt.Sprintf("%v", value)
+	return fmt.Sprintf("\033[2m%s%s", content, ansiReset)
+}
+
+// isStandardFieldFunc checks if a field is in the standard fields list
+func (f *TemplateFormatter) isStandardFieldFunc(field string) bool {
+	for _, stdField := range f.standardFields {
+		if field == stdField {
+			return true
+		}
+	}
+	return false
+}
+
+// hasPrefixFunc checks if a string has a specific prefix
+func (f *TemplateFormatter) hasPrefixFunc(s, prefix string) bool {
+	return strings.HasPrefix(s, prefix)
+}
+
+// getFieldsFunc returns all fields in the data map
+func (f *TemplateFormatter) getFieldsFunc(data map[string]interface{}) map[string]interface{} {
+	return data
+}
+
+// getFieldsWithoutFunc returns fields that don't match any of the provided fields
+func (f *TemplateFormatter) getFieldsWithoutFunc(data map[string]interface{}, excludeFields ...string) map[string]interface{} {
+	result := make(map[string]interface{})
+
+	for key, value := range data {
+		exclude := false
+		for _, excludeKey := range excludeFields {
+			if key == excludeKey {
+				exclude = true
+				break
+			}
+		}
+
+		if !exclude {
+			result[key] = value
+		}
+	}
+
+	return result
+}
+
+// getFieldsWithPrefixFunc returns fields that have a specific prefix
+func (f *TemplateFormatter) getFieldsWithPrefixFunc(data map[string]interface{}, prefix string) map[string]interface{} {
+	result := make(map[string]interface{})
+
+	for key, value := range data {
+		if strings.HasPrefix(key, prefix) {
+			result[key] = value
+		}
+	}
+
+	return result
+}
+
 // Format formats the data according to the template
 func (f *TemplateFormatter) Format(data map[string]interface{}) (string, error) {
 	var buf strings.Builder
@@ -191,9 +329,7 @@ func (f *TemplateFormatter) Format(data map[string]interface{}) (string, error) 
 		return "", err
 	}
 
-	// Process color tags
-	result := buf.String()
-	return ApplyColors(result, f.noColors), nil
+	return buf.String(), nil
 }
 
 // ProcessStream processes JSON logs from a reader and writes formatted output to a writer

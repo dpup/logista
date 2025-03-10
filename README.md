@@ -17,20 +17,24 @@ go install github.com/dpup/logista/cmd/logista@latest
 # Basic usage with default format
 my-server | logista
 
-# Custom format
+# Simple syntax with custom log formats
 my-server | logista --fmt="{timestamp} [{level}] {message}"
-
-# Format with template functions
 my-server | logista --fmt="{timestamp | date} [{level}] {message}"
+
+# Go template syntax (enables advanced features)
+my-server | logista --fmt="{{.timestamp}} [{{.level}}] {{.message}}"
 
 # Custom date format
 my-server | logista --fmt="{timestamp | date} [{level}] {message}" --preferred_date_format="15:04:05"
 
-# With colored output
-my-server | logista --fmt="<cyan>{timestamp | date}</> <bold {level | levelColor}>[{level}]</> {message}"
+# With message colored by log level (colors error red, warning yellow, etc)
+my-server | logista --fmt="{timestamp | date} [{level}] {msg | colorByLevel .level}"
+
+# With colored output and other formatting
+my-server | logista --fmt="{{.timestamp | date | color \"cyan\"}} [{{.level}}] {{.message | colorByLevel .level | bold}}"
 
 # Disable colors
-my-server | logista --fmt="<red>{level}</> {message}" --no-colors
+my-server | logista --fmt="{{.level | color \"red\"}} {{.message}}" --no-colors
 
 # Help
 logista --help
@@ -38,68 +42,121 @@ logista --help
 
 ## Format Templates
 
-Format templates use a simple syntax where field names are enclosed in curly
-braces `{}`. These field names should match the keys in your JSON log entries.
+Logista supports two syntax options for formatting logs:
 
-Example:
+1. **Simple Syntax**: Fields are enclosed in single curly braces. This is convenient for simple formats.
 
-```
-{timestamp} [{level}] {message} {context.user.id}
-```
+   ```
+   {timestamp} [{level}] {message}
+   ```
+
+2. **Full Go Template Syntax**: Fields are accessed using `.fieldname` within double curly braces. This enables powerful template features like conditionals, loops, and variable assignments.
+   ```
+   {{.timestamp}} [{{.level}}] {{.message}} {{.context.user.id}}
+   ```
 
 ### Template Functions
 
-Logista supports template functions that can transform field values. To use a function, add a pipe `|` after the field name, followed by the function name:
+Logista supports template functions that can transform field values. To use a function, add a pipe `|` after the field name, followed by the function name.
+
+Either syntax supports functions:
 
 ```
 {timestamp | date} [{level}] {message}
 ```
 
+Or using full Go template syntax:
+
+```
+{{.timestamp | date}} [{{.level}}] {{.message}}
+```
+
 #### Available Functions
 
-- **date**: Parses dates in various formats into a standardized format. Works with:
+- **Value Formatting Functions**:
 
-  - ISO 8601 timestamps: `2024-03-10T15:04:05Z`
-  - Unix timestamps: `1741626507` (seconds since epoch)
-  - Unix timestamps with fractional seconds: `1741626507.9066188`
-  - Common log formats: `10/Mar/2024:15:04:05 +0000`
-  - Many other common formats
+  - **date**: Parses dates in various formats into a standardized format. Works with:
+    - ISO 8601 timestamps: `2024-03-10T15:04:05Z`
+    - Unix timestamps: `1741626507` (seconds since epoch)
+    - Unix timestamps with fractional seconds: `1741626507.9066188`
+    - Common log formats: `10/Mar/2024:15:04:05 +0000`
+    - Many other common formats
+    - Use `--preferred_date_format` to set the output format in Go's time format syntax.
+  - **pad**: Pads a string to a specified length, e.g., `{level | pad 10}`
 
-  Use `--preferred_date_format` to set the output format in Go's time format syntax.
+- **Color Functions**:
 
-- **levelColor**: Automatically applies appropriate colors based on log level:
+  - **color**: Apply a specific color to a value, e.g., `{level | color "red"}`
+  - **colorByLevel**: Colors a value based on the level value, e.g., `{message | colorByLevel level}`
+  - **bold**: Makes text bold, e.g., `{message | bold}`
+  - **italic**: Makes text italic, e.g., `{message | italic}`
+  - **underline**: Underlines text, e.g., `{message | underline}`
+  - **dim**: Makes text dim, e.g., `{timestamp | dim}`
+  - **levelColor**: Gets the appropriate color name for a log level (for use with legacy color tags)
 
-  - `error`, `fatal`, `critical`, etc. → red
-  - `warn`, `warning` → yellow
-  - `info` → green
-  - `debug` → cyan
-  - `trace` → blue
+- **Field Filtering Functions**:
+  - **isStandardField**: Checks if a field is considered a standard field
+  - **hasPrefix**: Checks if a string has a specific prefix
+  - **getFields**: Returns all fields in the data map
+  - **getFieldsWithout**: Returns fields that don't match any of the provided fields
+  - **getFieldsWithPrefix**: Returns fields that have a specific prefix
 
-  Example use `<bold {level | levelColor}>{message}</>`
+### Advanced Template Features
 
-### Color Tags
-
-You can add color to your output using HTML-like color tags:
+When using the full Go template syntax, you get access to powerful template features like conditionals, loops, and variable assignments:
 
 ```
-<red>This text will be red</>
+{{.ts | date | color "cyan"}} {{.level | colorByLevel .level}} {{.msg | bold}}
+{{if hasPrefix "grpc.service" "grpc."}}
+  GRPC: {{.grpc.service}}.{{.grpc.method}} ({{.grpc.method_type}})
+{{end}}
 ```
 
-Available color tags:
+You can iterate over fields and filter them:
+
+```
+{{range $key, $value := .}}
+  {{if not (isStandardField $key)}}
+    {{$key}}: {{$value}}
+  {{end}}
+{{end}}
+```
+
+**Note**: Advanced features like conditionals and loops are only available with the full `{{.field}}` syntax, not the simplified `{field}` syntax.
+
+### Structured Log Example
+
+Here's a comprehensive example that clearly formats structured logs:
+
+```
+{{.ts | date | color "cyan"}} {{.level | colorByLevel .level}} {{.msg | bold}} ({{.logger | dim}})
+{{if hasPrefix "grpc.service" "grpc."}}
+  GRPC: {{.grpc.service}}.{{.grpc.method}} ({{.grpc.method_type | color "yellow"}})
+{{end}}
+{{range $key, $value := .}}
+  {{if not (isStandardField $key)}}
+    {{if not (hasPrefix $key "grpc.")}}
+  {{$key | dim}}: {{$value}}
+    {{end}}
+  {{end}}
+{{end}}
+```
+
+Configure standard fields via CLI:
+
+```
+logista --standard-fields=level,ts,msg,logger,caller
+```
+
+### Available Colors
+
+The following colors are available for use with color functions:
 
 - Foreground colors: `black`, `red`, `green`, `yellow`, `blue`, `magenta`, `cyan`, `white`, `gray`
 - Bright colors: `brightred`, `brightgreen`, `brightyellow`, `brightblue`, `brightmagenta`, `brightcyan`, `brightwhite`
 - Background colors: `bg-black`, `bg-red`, `bg-green`, `bg-yellow`, `bg-blue`, `bg-magenta`, `bg-cyan`, `bg-white`, `bg-gray`
 - Bright backgrounds: `bg-brightred`, `bg-brightgreen`, `bg-brightyellow`, `bg-brightblue`, `bg-brightmagenta`, `bg-brightcyan`, `bg-brightwhite`
 - Formatting: `bold`, `italic`, `underline`, `dim`
-
-You can combine multiple styles by adding spaces:
-
-```
-<bold red>Bold red text</>
-```
-
-For simplicity, you can use `</>` as a universal closing tag, or use traditional HTML-style tags like `</red>` if you prefer.
 
 Colors can be disabled with the `--no-colors` flag.
 
