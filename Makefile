@@ -29,9 +29,8 @@ shell-test:
 
 # Run the tool manually with test logs
 run-test: build
-	cat test/basic-logs.json | ${DIST_DIR}/${BINARY_NAME}  \
-		--preferred_date_format="15:04:05" \
-		--fmt="{timestamp | date | color \"red\"} {level | pad 8 | colorByLevel .level} {message | colorByLevel .level}"
+	./test/print_basic_logs.sh
+	./test/print_grpc_logs.sh
 
 # Run tests with coverage
 test-coverage:
