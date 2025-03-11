@@ -57,13 +57,8 @@ func WithGroupPrefixes(prefixes map[string]string) FormatterOption {
 
 // NewTemplateFormatter creates a new TemplateFormatter with the given format string
 func NewTemplateFormatter(format string, opts ...FormatterOption) (*TemplateFormatter, error) {
-	// Support both simple {field} syntax and full Go template {{.field}} syntax
-	// Replace {field} with {{.field}} for Go template if the simplified syntax is detected
-	hasSimpleSyntax := strings.Contains(format, "{") && !strings.Contains(format, "{{")
-	if hasSimpleSyntax {
-		format = strings.ReplaceAll(format, "{", "{{.")
-		format = strings.ReplaceAll(format, "}", "}}")
-	}
+	// Process template with shortcuts via the preprocessor
+	format = PreProcessTemplate(format, DefaultPreProcessTemplateOptions())
 
 	// Create the formatter with default values
 	formatter := &TemplateFormatter{
@@ -111,6 +106,7 @@ func NewTemplateFormatter(format string, opts ...FormatterOption) (*TemplateForm
 	formatter.template = parsed
 	return formatter, nil
 }
+
 
 // padFunc is a template function that pads a string to a specified length
 func (f *TemplateFormatter) padFunc(length int, value interface{}) string {

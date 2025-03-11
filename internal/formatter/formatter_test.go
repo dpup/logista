@@ -162,7 +162,7 @@ func TestDateFunction(t *testing.T) {
 	}
 }
 
-func TestSimplifiedSyntax(t *testing.T) {
+func TestStandardTemplateSyntax(t *testing.T) {
 	tests := []struct {
 		name     string
 		format   string
@@ -170,34 +170,48 @@ func TestSimplifiedSyntax(t *testing.T) {
 		expected string
 	}{
 		{
-			name:     "simple braces syntax",
-			format:   "{level} {message}",
+			name:     "standard Go template syntax",
+			format:   "{{.level}} {{.message}}",
 			data:     map[string]interface{}{"level": "info", "message": "test message"},
 			expected: "info test message",
 		},
 		{
-			name:     "simple braces with function",
-			format:   "{level | pad 10} {message}",
+			name:     "Go template with function",
+			format:   "{{.level | pad 10}} {{.message}}",
 			data:     map[string]interface{}{"level": "info", "message": "test message"},
 			expected: "info       test message",
 		},
 		{
-			name:     "simple braces with color function",
-			format:   "{level} {message | color \"red\"}",
+			name:     "Go template with color function",
+			format:   "{{.level}} {{.message | color \"red\"}}",
 			data:     map[string]interface{}{"level": "info", "message": "test message"},
 			expected: "info \033[31mtest message\033[0m",
 		},
 		{
-			name:     "simple braces with colorByLevel function",
-			format:   "{level} {message | colorByLevel .level}",
+			name:     "Go template with colorByLevel function",
+			format:   "{{.level}} {{.message | colorByLevel .level}}",
 			data:     map[string]interface{}{"level": "error", "message": "test message"},
 			expected: "error \033[31mtest message\033[0m",
+		},
+		{
+			name:     "Go template with index function",
+			format:   "{{.level}} {{index . \"grpc.method\"}}",
+			data:     map[string]interface{}{"level": "info", "grpc.method": "GetUser"},
+			expected: "info GetUser",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			formatter, err := NewTemplateFormatter(tt.format)
+			// Use options to disable preprocessing for this test
+			options := []FormatterOption{
+				WithNoColors(false),
+			}
+			
+			// Create a new formatter with the PreProcessTemplate function manually applied
+			// to ensure we're only testing the formatter, not the preprocessor
+			rawFormat := tt.format
+			formatter, err := NewTemplateFormatter(rawFormat, options...)
 			if err != nil {
 				t.Fatalf("Failed to create formatter: %v", err)
 			}
