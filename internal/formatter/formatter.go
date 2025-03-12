@@ -19,11 +19,10 @@ type Formatter interface {
 
 // TemplateFormatter formats logs using a Go template
 type TemplateFormatter struct {
-	template             *template.Template
-	preferredDateFmt     string
-	noColors             bool
-	tableExcludePrefixes []string
-	tableKeyPadding      int
+	template         *template.Template
+	preferredDateFmt string
+	noColors         bool
+	tableKeyPadding  int
 }
 
 // FormatterOption is a functional option for configuring the formatter
@@ -43,12 +42,7 @@ func WithNoColors(noColors bool) FormatterOption {
 	}
 }
 
-// WithTableExcludePrefixes sets prefixes for fields to exclude from table output
-func WithTableExcludePrefixes(prefixes []string) FormatterOption {
-	return func(tf *TemplateFormatter) {
-		tf.tableExcludePrefixes = prefixes
-	}
-}
+// No longer needed as the filter function can be used directly in templates
 
 // WithTableKeyPadding sets the padding length for keys in table output
 func WithTableKeyPadding(padding int) FormatterOption {
@@ -64,9 +58,8 @@ func NewTemplateFormatter(format string, opts ...FormatterOption) (*TemplateForm
 
 	// Create the formatter with default values
 	formatter := &TemplateFormatter{
-		preferredDateFmt:     "2006-01-02 15:04:05",
-		tableExcludePrefixes: []string{"grpc."},
-		tableKeyPadding:      18,
+		preferredDateFmt: "2006-01-02 15:04:05",
+		tableKeyPadding:  26,
 	}
 
 	// Apply options
@@ -360,7 +353,7 @@ func (f *TemplateFormatter) prettyMap(m map[string]interface{}) string {
 
 // tableFunc formats a map as a table with each field on a new line
 // Format is "key: value" with keys right-padded and dimmed
-// Empty or nil values are omitted, and fields with specified prefixes are excluded
+// Empty or nil values are omitted (use with filter function for field exclusion)
 func (f *TemplateFormatter) tableFunc(value interface{}) string {
 	if value == nil {
 		return ""
@@ -383,17 +376,7 @@ func (f *TemplateFormatter) tableFunc(value interface{}) string {
 	// Get a sorted list of keys for consistent output
 	var keys []string
 	for key := range dataMap {
-		// Skip excluded prefixes
-		excluded := false
-		for _, prefix := range f.tableExcludePrefixes {
-			if strings.HasPrefix(key, prefix) {
-				excluded = true
-				break
-			}
-		}
-		if !excluded {
-			keys = append(keys, key)
-		}
+		keys = append(keys, key)
 	}
 	sort.Strings(keys)
 

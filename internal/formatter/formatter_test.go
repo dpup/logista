@@ -433,7 +433,6 @@ func TestTableFunc(t *testing.T) {
 		contains         []string
 		notContains      []string
 		noColors         bool
-		excludePrefixes  []string
 		keyPadding       int
 	}{
 		{
@@ -475,8 +474,8 @@ func TestTableFunc(t *testing.T) {
 			},
 		},
 		{
-			name:   "table with exclusion prefixes",
-			format: "{{. | table}}",
+			name:   "table with filtered data",
+			format: "{{filter . \"grpc.*\" | table}}",
 			data: map[string]interface{}{
 				"level":           "info",
 				"message":         "Application started",
@@ -495,11 +494,10 @@ func TestTableFunc(t *testing.T) {
 				"grpc.method",
 				"grpc.service",
 			},
-			excludePrefixes: []string{"grpc."},
 		},
 		{
-			name:   "table with custom exclude prefixes",
-			format: "{{. | table}}",
+			name:   "table with different filtered data",
+			format: "{{filter . \"http.*\" | table}}",
 			data: map[string]interface{}{
 				"level":           "info",
 				"message":         "Application started",
@@ -516,7 +514,6 @@ func TestTableFunc(t *testing.T) {
 				"http.status",
 				"http.user_agent",
 			},
-			excludePrefixes: []string{"http."},
 		},
 		{
 			name:   "table with custom key padding",
@@ -575,9 +572,7 @@ func TestTableFunc(t *testing.T) {
 			if tt.noColors {
 				opts = append(opts, WithNoColors(true))
 			}
-			if tt.excludePrefixes != nil {
-				opts = append(opts, WithTableExcludePrefixes(tt.excludePrefixes))
-			}
+			// Filtering is now done in the template with the filter function
 			if tt.keyPadding != 0 {
 				opts = append(opts, WithTableKeyPadding(tt.keyPadding))
 			}
