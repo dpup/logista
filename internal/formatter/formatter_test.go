@@ -604,6 +604,82 @@ func TestTableFunc(t *testing.T) {
 	}
 }
 
+func TestDurationFunc(t *testing.T) {
+	tests := []struct {
+		name     string
+		format   string
+		data     map[string]interface{}
+		expected string
+	}{
+		{
+			name:     "duration with time.Duration value",
+			format:   "{{.duration | duration}}",
+			data:     map[string]interface{}{"duration": 1500 * time.Millisecond},
+			expected: "1.50s",
+		},
+		{
+			name:     "duration with string value (parseable)",
+			format:   "{{.duration | duration}}",
+			data:     map[string]interface{}{"duration": "1h30m15s"},
+			expected: "1h30m15s",
+		},
+		{
+			name:     "duration with string value (with ms)",
+			format:   "{{.duration | duration}}",
+			data:     map[string]interface{}{"duration": "750ms"},
+			expected: "750.00ms",
+		},
+		{
+			name:     "duration with number (milliseconds)",
+			format:   "{{.duration | duration}}",
+			data:     map[string]interface{}{"duration": 1500},
+			expected: "1.50s",
+		},
+		{
+			name:     "duration with float (milliseconds)",
+			format:   "{{.duration | duration}}",
+			data:     map[string]interface{}{"duration": 1500.5},
+			expected: "1.50s",
+		},
+		{
+			name:     "duration with very small value",
+			format:   "{{.duration | duration}}",
+			data:     map[string]interface{}{"duration": 0.75},
+			expected: "750.00µs",  // 0.75ms == 750µs
+		},
+		{
+			name:     "duration with json.Number",
+			format:   "{{.duration | duration}}",
+			data:     map[string]interface{}{"duration": json.Number("1500")},
+			expected: "1.50s",
+		},
+		{
+			name:     "duration with unparseable string",
+			format:   "{{.duration | duration}}",
+			data:     map[string]interface{}{"duration": "not a duration"},
+			expected: "not a duration", // Should fall back to pretty formatting
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			formatter, err := NewTemplateFormatter(tt.format)
+			if err != nil {
+				t.Fatalf("Failed to create formatter: %v", err)
+			}
+
+			result, err := formatter.Format(tt.data)
+			if err != nil {
+				t.Fatalf("Format failed: %v", err)
+			}
+
+			if result != tt.expected {
+				t.Errorf("Expected '%s', got '%s'", tt.expected, result)
+			}
+		})
+	}
+}
+
 func TestPrettyFunc(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -624,6 +700,36 @@ func TestPrettyFunc(t *testing.T) {
 			format: "{{.count | pretty}}",
 			data:   map[string]interface{}{"count": 42},
 			contains: []string{"42"},
+		},
+		{
+			name:   "pretty duration nanoseconds",
+			format: "{{.duration | pretty}}",
+			data:   map[string]interface{}{"duration": 750 * time.Nanosecond},
+			contains: []string{"750ns"},
+		},
+		{
+			name:   "pretty duration microseconds",
+			format: "{{.duration | pretty}}",
+			data:   map[string]interface{}{"duration": 750 * time.Microsecond},
+			contains: []string{"750.00µs"},
+		},
+		{
+			name:   "pretty duration milliseconds",
+			format: "{{.duration | pretty}}",
+			data:   map[string]interface{}{"duration": 750 * time.Millisecond},
+			contains: []string{"750.00ms"},
+		},
+		{
+			name:   "pretty duration seconds",
+			format: "{{.duration | pretty}}",
+			data:   map[string]interface{}{"duration": 7500 * time.Millisecond},
+			contains: []string{"7.50s"},
+		},
+		{
+			name:   "pretty duration minutes",
+			format: "{{.duration | pretty}}",
+			data:   map[string]interface{}{"duration": 90 * time.Second},
+			contains: []string{"1m30s"},
 		},
 		{
 			name:   "pretty map",

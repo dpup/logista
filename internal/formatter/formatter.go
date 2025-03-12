@@ -59,7 +59,7 @@ func NewTemplateFormatter(format string, opts ...FormatterOption) (*TemplateForm
 	// Create the formatter with default values
 	formatter := &TemplateFormatter{
 		preferredDateFmt: "2006-01-02 15:04:05",
-		tableKeyPadding:  26,
+		tableKeyPadding:  18,
 	}
 
 	// Apply options
@@ -70,10 +70,11 @@ func NewTemplateFormatter(format string, opts ...FormatterOption) (*TemplateForm
 	// Create template with custom functions
 	tmpl := template.New("formatter").Funcs(template.FuncMap{
 		// Value formatting
-		"date":   formatter.dateFunc,
-		"pad":    formatter.padFunc,
-		"pretty": formatter.prettyFunc,
-		"table":  formatter.tableFunc,
+		"date":     formatter.dateFunc,
+		"pad":      formatter.padFunc,
+		"pretty":   formatter.prettyFunc,
+		"table":    formatter.tableFunc,
+		"duration": formatter.durationFunc,
 
 		// Color functions
 		"color":        formatter.colorFunc,
@@ -254,6 +255,8 @@ func (f *TemplateFormatter) prettyFunc(value interface{}) string {
 		return fmt.Sprintf("%t", v)
 	case json.Number:
 		return v.String()
+	case time.Duration:
+		return formatDuration(v)
 	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64:
 		return fmt.Sprintf("%v", v)
 	case []interface{}:
@@ -451,6 +454,84 @@ func (f *TemplateFormatter) filterFunc(data map[string]interface{}, excludePatte
 	}
 
 	return result
+}
+
+// formatDuration formats a time.Duration into a human-readable string
+// For example: 1h30m45s, 250ms, 1.5s
+func formatDuration(d time.Duration) string {
+	// Handle special cases for very small durations
+	if d < time.Microsecond {
+		return fmt.Sprintf("%dns", d.Nanoseconds())
+	}
+
+	// For durations less than 1ms, show as microseconds
+	if d < time.Millisecond {
+		microSeconds := float64(d.Nanoseconds()) / float64(time.Microsecond)
+		return fmt.Sprintf("%.2fµs", microSeconds)
+	}
+
+	if d < time.Second {
+		milliSeconds := float64(d.Nanoseconds()) / float64(time.Millisecond)
+		return fmt.Sprintf("%.2fms", milliSeconds)
+	}
+
+	// For durations around a few seconds, show decimal seconds
+	if d < 10*time.Second {
+		seconds := float64(d.Nanoseconds()) / float64(time.Second)
+		return fmt.Sprintf("%.2fs", seconds)
+	}
+
+	// For longer durations, use the standard Go format (which automatically
+	// selects appropriate units like 1h30m45s)
+	return d.String()
+}
+
+// parseDuration attempts to parse a value as a duration
+// It can handle:
+// - time.Duration values directly
+// - String values (parseable by time.ParseDuration like "1h30m", "500ms")
+// - Numeric values (assumed to be milliseconds)
+// - json.Number values (assumed to be milliseconds)
+func parseDuration(value interface{}) (time.Duration, error) {
+	if value == nil {
+		return 0, fmt.Errorf("cannot parse nil as duration")
+	}
+
+	switch v := value.(type) {
+	case time.Duration:
+		return v, nil
+	case string:
+		// Try to parse as a Go duration string (e.g., "1h30m", "500ms")
+		if d, err := time.ParseDuration(v); err == nil {
+			return d, nil
+		}
+		// Failed to parse directly, return error
+		return 0, fmt.Errorf("cannot parse '%s' as duration", v)
+	case json.Number:
+		// Parse as milliseconds
+		if f, err := v.Float64(); err == nil {
+			return time.Duration(f * float64(time.Millisecond)), nil
+		}
+		return 0, fmt.Errorf("cannot parse '%s' as milliseconds", v)
+	case int:
+		return time.Duration(v) * time.Millisecond, nil
+	case int64:
+		return time.Duration(v) * time.Millisecond, nil
+	case float64:
+		return time.Duration(v * float64(time.Millisecond)), nil
+	default:
+		return 0, fmt.Errorf("cannot parse '%v' (type %T) as duration", v, v)
+	}
+}
+
+// durationFunc is a template function that parses a value as duration and formats it nicely
+func (f *TemplateFormatter) durationFunc(value interface{}) string {
+	duration, err := parseDuration(value)
+	if err != nil {
+		// If we can't parse as duration, just use pretty formatting
+		return f.prettyFunc(value)
+	}
+	return formatDuration(duration)
 }
 
 // Format formats the data according to the template
