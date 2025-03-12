@@ -414,6 +414,7 @@ func TestPrettyFunc(t *testing.T) {
 		data      map[string]interface{}
 		contains  []string
 		notContains []string
+		noColors  bool
 	}{
 		{
 			name:   "pretty basic string",
@@ -440,14 +441,36 @@ func TestPrettyFunc(t *testing.T) {
 				},
 			},
 			contains: []string{
-				"\"user\":",
-				"\"id\":",
-				"\"user123\"",
-				"\"name\":",
-				"\"John Doe\"",
-				"\"request_id\":",
-				"\"req-456\"",
+				"{",
+				"user=",
+				"id=",
+				"user123",
+				"name=",
+				"John Doe",
+				"request_id=",
+				"req-456",
+				"}",
 			},
+		},
+		{
+			name:   "pretty map with no colors",
+			format: "{{.context | pretty}}",
+			data: map[string]interface{}{
+				"context": map[string]interface{}{
+					"user": map[string]interface{}{
+						"id":   "user123",
+					},
+					"request_id": "req-456",
+				},
+			},
+			contains: []string{
+				"{",
+				"user=",
+				"id=user123",
+				"request_id=req-456",
+				"}",
+			},
+			noColors: true,
 		},
 		{
 			name:   "pretty array",
@@ -458,7 +481,9 @@ func TestPrettyFunc(t *testing.T) {
 			contains: []string{
 				"[",
 				"1",
-				"\"two\"",
+				", ",
+				"two",
+				", ",
 				"true",
 				"]",
 			},
@@ -484,16 +509,21 @@ func TestPrettyFunc(t *testing.T) {
 				},
 			},
 			contains: []string{
-				// Users array checks
-				"\"users\":", 
-				"\"id\":", "\"u1\"",
-				"\"role\":", "\"admin\"",
-				"\"id\":", "\"u2\"",
-				"\"role\":", "\"user\"",
+				// Map structure
+				"{",
+				"users=",
+				"metadata=",
 				
-				// Metadata checks
-				"\"metadata\":",
-				"\"version\":", "\"1.0\"",
+				// Array structure
+				"[",
+				", ",
+				
+				// Content checks
+				"id=", "u1",
+				"role=", "admin",
+				"id=", "u2",
+				"role=", "user",
+				"version=", "1.0",
 			},
 		},
 		{
@@ -518,7 +548,12 @@ func TestPrettyFunc(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			formatter, err := NewTemplateFormatter(tt.format)
+			opts := []FormatterOption{}
+			if tt.noColors {
+				opts = append(opts, WithNoColors(true))
+			}
+			
+			formatter, err := NewTemplateFormatter(tt.format, opts...)
 			if err != nil {
 				t.Fatalf("Failed to create formatter: %v", err)
 			}

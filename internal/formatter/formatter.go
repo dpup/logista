@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"reflect"
 	"strings"
 	"text/template"
 	"time"
@@ -240,15 +241,99 @@ func (f *TemplateFormatter) prettyFunc(value interface{}) string {
 		return v.String()
 	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64:
 		return fmt.Sprintf("%v", v)
+	case []interface{}:
+		return f.prettyArray(v)
+	case map[string]interface{}:
+		return f.prettyMap(v)
 	}
 
-	// Try the json.MarshalIndent approach for simplicity and consistency
-	jsonBytes, err := json.MarshalIndent(value, "", "  ")
-	if err != nil {
-		// Fallback to simple string representation if JSON marshaling fails
-		return fmt.Sprintf("%v", value)
+	// For other complex types, use reflection to determine the kind
+	val := reflect.ValueOf(value)
+	if val.Kind() == reflect.Slice || val.Kind() == reflect.Array {
+		// Convert to []interface{} and use prettyArray
+		length := val.Len()
+		arr := make([]interface{}, length)
+		for i := 0; i < length; i++ {
+			arr[i] = val.Index(i).Interface()
+		}
+		return f.prettyArray(arr)
+	} else if val.Kind() == reflect.Map {
+		// Convert to map[string]interface{} and use prettyMap if possible
+		result := make(map[string]interface{})
+		for _, key := range val.MapKeys() {
+			// Try to convert key to string
+			var keyStr string
+			if key.Kind() == reflect.String {
+				keyStr = key.String()
+			} else {
+				keyStr = fmt.Sprintf("%v", key.Interface())
+			}
+			result[keyStr] = val.MapIndex(key).Interface()
+		}
+		return f.prettyMap(result)
 	}
-	return string(jsonBytes)
+
+	// Fallback to standard formatting for other types
+	return fmt.Sprintf("%v", value)
+}
+
+// prettyArray formats an array as a comma-separated list with dim formatting for commas
+func (f *TemplateFormatter) prettyArray(arr []interface{}) string {
+	if len(arr) == 0 {
+		return "[]"
+	}
+
+	var builder strings.Builder
+	builder.WriteString("[")
+
+	for i, item := range arr {
+		builder.WriteString(f.prettyFunc(item))
+		if i < len(arr)-1 {
+			if f.noColors {
+				builder.WriteString(", ")
+			} else {
+				builder.WriteString(fmt.Sprintf("\033[2m, \033[0m"))
+			}
+		}
+	}
+
+	builder.WriteString("]")
+	return builder.String()
+}
+
+// prettyMap formats a map with key=value format where the key part is dim
+func (f *TemplateFormatter) prettyMap(m map[string]interface{}) string {
+	if len(m) == 0 {
+		return "{}"
+	}
+
+	var builder strings.Builder
+	builder.WriteString("{")
+
+	i := 0
+	for key, val := range m {
+		if i > 0 {
+			if f.noColors {
+				builder.WriteString(", ")
+			} else {
+				builder.WriteString(fmt.Sprintf("\033[2m, \033[0m"))
+			}
+		}
+
+		// Key part with dim formatting if colors are enabled
+		if f.noColors {
+			builder.WriteString(fmt.Sprintf("%s=", key))
+		} else {
+			builder.WriteString(fmt.Sprintf("\033[2m%s=\033[0m", key))
+		}
+
+		// Value part with normal formatting
+		builder.WriteString(f.prettyFunc(val))
+		i++
+	}
+
+	builder.WriteString("}")
+	return builder.String()
 }
 
 // hasPrefixFunc checks if a string has a specific prefix
