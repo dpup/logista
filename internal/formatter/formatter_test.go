@@ -680,6 +680,70 @@ func TestDurationFunc(t *testing.T) {
 	}
 }
 
+func TestTruncFunc(t *testing.T) {
+	tests := []struct {
+		name     string
+		format   string
+		data     map[string]interface{}
+		expected string
+	}{
+		{
+			name:     "trunc with default length",
+			format:   "{{trunc 20 .text}}",
+			data:     map[string]interface{}{"text": "This is a long text that should be truncated"},
+			expected: "This is a long te...",
+		},
+		{
+			name:     "trunc with custom length",
+			format:   "{{trunc 10 .text}}",
+			data:     map[string]interface{}{"text": "This is a long text"},
+			expected: "This is...",
+		},
+		{
+			name:     "trunc short text",
+			format:   "{{trunc 20 .text}}",
+			data:     map[string]interface{}{"text": "Short text"},
+			expected: "Short text",
+		},
+		{
+			name:     "trunc very small max length",
+			format:   "{{trunc 3 .text}}",
+			data:     map[string]interface{}{"text": "Long text"},
+			expected: "Lon",
+		},
+		{
+			name:     "trunc empty text",
+			format:   "{{trunc 20 .text}}",
+			data:     map[string]interface{}{"text": ""},
+			expected: "",
+		},
+		{
+			name:     "trunc nil value",
+			format:   "{{trunc 20 .missing}}",
+			data:     map[string]interface{}{},
+			expected: "<no value>",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			formatter, err := NewTemplateFormatter(tt.format)
+			if err != nil {
+				t.Fatalf("Failed to create formatter: %v", err)
+			}
+
+			result, err := formatter.Format(tt.data)
+			if err != nil {
+				t.Fatalf("Format failed: %v", err)
+			}
+
+			if result != tt.expected {
+				t.Errorf("Expected:\n%s\n\nGot:\n%s", tt.expected, result)
+			}
+		})
+	}
+}
+
 func TestWrapFunc(t *testing.T) {
 	tests := []struct {
 		name     string

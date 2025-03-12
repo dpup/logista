@@ -77,6 +77,7 @@ func NewTemplateFormatter(format string, opts ...FormatterOption) (*TemplateForm
 		"table":    formatter.tableFunc,
 		"duration": formatter.durationFunc,
 		"wrap":     formatter.wrapFunc,
+		"trunc":    formatter.truncFunc,
 
 		// Color functions
 		"color":        formatter.colorFunc,
@@ -534,6 +535,48 @@ func (f *TemplateFormatter) durationFunc(value interface{}) string {
 		return f.prettyFunc(value)
 	}
 	return formatDuration(duration)
+}
+
+// truncFunc is a template function that truncates text to a specified length
+// and adds an ellipsis if the text was truncated.
+// Usage: {{.message | trunc 20}}
+func (f *TemplateFormatter) truncFunc(maxLen interface{}, value interface{}) string {
+	// Handle nil case
+	if value == nil {
+		return "<no value>"
+	}
+	
+	// Get the text to truncate
+	text := fmt.Sprintf("%v", value)
+	if text == "" {
+		return ""
+	}
+
+	// Parse maxLen parameter
+	maxLength := 20 // Default max length
+	if maxLen != nil {
+		if l, ok := maxLen.(int); ok {
+			maxLength = l
+		} else if l, err := strconv.Atoi(fmt.Sprintf("%v", maxLen)); err == nil {
+			maxLength = l
+		}
+	}
+	if maxLength <= 0 {
+		maxLength = 20
+	}
+
+	// If the string is already shorter than max length, return it as is
+	if len(text) <= maxLength {
+		return text
+	}
+
+	// Truncate the string and add ellipsis
+	// If maxLength is very small (less than 4), we might not have space for ellipsis
+	if maxLength < 4 {
+		return text[:maxLength]
+	}
+	
+	return text[:maxLength-3] + "..."
 }
 
 // wrapFunc is a template function that wraps text to a specified width
