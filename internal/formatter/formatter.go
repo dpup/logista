@@ -6,6 +6,7 @@ import (
 	"io"
 	"reflect"
 	"sort"
+	"strconv"
 	"strings"
 	"text/template"
 	"time"
@@ -75,6 +76,7 @@ func NewTemplateFormatter(format string, opts ...FormatterOption) (*TemplateForm
 		"pretty":   formatter.prettyFunc,
 		"table":    formatter.tableFunc,
 		"duration": formatter.durationFunc,
+		"wrap":     formatter.wrapFunc,
 
 		// Color functions
 		"color":        formatter.colorFunc,
@@ -532,6 +534,104 @@ func (f *TemplateFormatter) durationFunc(value interface{}) string {
 		return f.prettyFunc(value)
 	}
 	return formatDuration(duration)
+}
+
+// wrapFunc is a template function that wraps text to a specified width
+// It takes a width parameter (required) and an optional indent parameter
+// for wrapped lines. Usage: {{.description | wrap 80 2}}
+func (f *TemplateFormatter) wrapFunc(width interface{}, indent interface{}, value interface{}) string {
+	// Handle nil case
+	if value == nil {
+		return "<no value>"
+	}
+	
+	// Get the text to wrap
+	text := fmt.Sprintf("%v", value)
+	if text == "" {
+		return ""
+	}
+
+	// Parse width parameter
+	widthVal := 80 // Default width
+	if width != nil {
+		if w, ok := width.(int); ok {
+			widthVal = w
+		} else if w, err := strconv.Atoi(fmt.Sprintf("%v", width)); err == nil {
+			widthVal = w
+		}
+	}
+	if widthVal <= 0 {
+		widthVal = 80
+	}
+
+	// Parse indent parameter
+	indentVal := 0
+	if indent != nil {
+		if i, ok := indent.(int); ok {
+			indentVal = i
+		} else if i, err := strconv.Atoi(fmt.Sprintf("%v", indent)); err == nil {
+			indentVal = i
+		}
+	}
+	if indentVal < 0 {
+		indentVal = 0
+	}
+
+	indentStr := strings.Repeat(" ", indentVal)
+	words := strings.Fields(text)
+	if len(words) == 0 {
+		return ""
+	}
+
+	// Calculate line width for wrapped lines
+	firstLineWidth := widthVal
+	wrappedLineWidth := widthVal - indentVal
+
+	var result strings.Builder
+	lineLength := 0
+	isFirstLine := true
+
+	for _, word := range words {
+		wordLen := len(word)
+		currentWidth := firstLineWidth
+		if !isFirstLine {
+			currentWidth = wrappedLineWidth
+		}
+		
+		// Check if adding this word would exceed the width
+		spaceNeeded := 0
+		if lineLength > 0 {
+			spaceNeeded = 1  // Need a space between words
+		}
+		
+		if lineLength+wordLen+spaceNeeded > currentWidth {
+			// Start a new line
+			result.WriteString("\n")
+			
+			// Add indent if not the first line
+			if indentVal > 0 {
+				result.WriteString(indentStr)
+			}
+			
+			// Add the word
+			result.WriteString(word)
+			lineLength = wordLen
+			
+			// Mark that we're no longer on the first line
+			isFirstLine = false
+		} else {
+			// Add a space before the word if it's not the first word on the line
+			if lineLength > 0 {
+				result.WriteString(" ")
+				lineLength++
+			}
+			
+			result.WriteString(word)
+			lineLength += wordLen
+		}
+	}
+
+	return result.String()
 }
 
 // Format formats the data according to the template

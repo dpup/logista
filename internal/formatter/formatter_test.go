@@ -680,6 +680,64 @@ func TestDurationFunc(t *testing.T) {
 	}
 }
 
+func TestWrapFunc(t *testing.T) {
+	tests := []struct {
+		name     string
+		format   string
+		data     map[string]interface{}
+		expected string
+	}{
+		{
+			name:     "wrap with default width",
+			format:   "{{wrap 20 nil .text}}",
+			data:     map[string]interface{}{"text": "This is a long text that should be wrapped to multiple lines according to the specified width."},
+			expected: "This is a long text\nthat should be\nwrapped to multiple\nlines according to\nthe specified width.",
+		},
+		{
+			name:     "wrap with custom width and indent",
+			format:   "{{wrap 15 4 .text}}",
+			data:     map[string]interface{}{"text": "This is a long text that should be wrapped and indented."},
+			expected: "This is a long\n    text that\n    should be\n    wrapped and\n    indented.",
+		},
+		{
+			name:     "wrap short text",
+			format:   "{{wrap 80 nil .text}}",
+			data:     map[string]interface{}{"text": "Short text."},
+			expected: "Short text.",
+		},
+		{
+			name:     "wrap empty text",
+			format:   "{{wrap 80 nil .text}}",
+			data:     map[string]interface{}{"text": ""},
+			expected: "",
+		},
+		{
+			name:     "wrap nil value",
+			format:   "{{wrap 80 nil .missing}}",
+			data:     map[string]interface{}{},
+			expected: "<no value>",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			formatter, err := NewTemplateFormatter(tt.format)
+			if err != nil {
+				t.Fatalf("Failed to create formatter: %v", err)
+			}
+
+			result, err := formatter.Format(tt.data)
+			if err != nil {
+				t.Fatalf("Format failed: %v", err)
+			}
+
+			if result != tt.expected {
+				t.Errorf("Expected:\n%s\n\nGot:\n%s", tt.expected, result)
+			}
+		})
+	}
+}
+
 func TestPrettyFunc(t *testing.T) {
 	tests := []struct {
 		name      string
