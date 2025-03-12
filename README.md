@@ -13,6 +13,11 @@ go install github.com/dpup/logista/cmd/logista@latest
 
 ## Usage
 
+Formatting uses a super-set of Go's native templates, so any syntax that is a
+valid Go template is also a valid formatting string in Logista. This means you
+can use Go's powerful templating features, such as conditionals, loops, and
+functions, to create highly customized log formats.
+
 ```
 # Basic usage with default format
 my-server | logista
@@ -20,6 +25,9 @@ my-server | logista
 # Simple syntax with custom log formats
 my-server | logista --fmt="{timestamp} [{level}] {message}"
 my-server | logista --fmt="{timestamp | date} [{level}] {message}"
+
+# @symbol syntax for fields with special characters
+my-server | logista --fmt="{@user.name} (ID: {@request-id})"
 
 # Go template syntax (enables advanced features)
 my-server | logista --fmt="{{.timestamp}} [{{.level}}] {{.message}}"
@@ -42,7 +50,7 @@ logista --help
 
 ## Format Templates
 
-Logista supports two syntax options for formatting logs:
+Logista supports several syntax options for formatting logs:
 
 1. **Simple Syntax**: Fields are enclosed in single curly braces. This is convenient for simple formats.
 
@@ -50,7 +58,13 @@ Logista supports two syntax options for formatting logs:
    {timestamp} [{level}] {message}
    ```
 
-2. **Full Go Template Syntax**: Fields are accessed using `.fieldname` within double curly braces. This enables powerful template features like conditionals, loops, and variable assignments.
+2. **@Symbol Syntax**: Fields can be accessed using the @symbol notation within Go template braces. This is especially useful for fields with special characters like periods, hyphens, or underscores.
+
+   ```
+   {{@user.name}} {{@request-id}} {{@response_code}}
+   ```
+
+3. **Full Go Template Syntax**: Fields are accessed using `.fieldname` within double curly braces. This enables powerful template features like conditionals, loops, and variable assignments.
    ```
    {{.timestamp}} [{{.level}}] {{.message}} {{.context.user.id}}
    ```

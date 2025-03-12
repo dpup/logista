@@ -107,7 +107,6 @@ func NewTemplateFormatter(format string, opts ...FormatterOption) (*TemplateForm
 	return formatter, nil
 }
 
-
 // padFunc is a template function that pads a string to a specified length
 func (f *TemplateFormatter) padFunc(length int, value interface{}) string {
 	if value == nil {

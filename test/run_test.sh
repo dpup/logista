@@ -135,4 +135,18 @@ else
   exit 1
 fi
 
+# Test with at-symbol syntax
+echo ""
+echo "=== Testing at-symbol syntax ==="
+AT_SYMBOL_OUTPUT=$(cat "$TEST_DATA" | "$BINARY" --fmt="{{@level}}: {{@message}} (timestamp: {{@timestamp}})")
+echo "$AT_SYMBOL_OUTPUT"
+
+# For at-symbol syntax test, verify the command ran and expected output is present
+if [ $? -eq 0 ] && echo "$AT_SYMBOL_OUTPUT" | grep -q "info: Application started (timestamp: 2025-03-10T15:04:05Z)"; then
+  echo -e "\033[0;32mAt-symbol syntax test: PASSED\033[0m"
+else
+  echo -e "\033[0;31mAt-symbol syntax test: FAILED\033[0m"
+  exit 1
+fi
+
 echo -e "\033[0;32mAll tests passed!\033[0m"

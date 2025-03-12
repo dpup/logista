@@ -62,18 +62,18 @@ func ApplyColorToString(content string, colorName string) string {
 	if colorName == "none" {
 		return content
 	}
-	
+
 	if code, ok := colorCodes[colorName]; ok {
 		return fmt.Sprintf("\033[%sm%s%s", code, content, ansiReset)
 	}
-	
+
 	return content // Return unchanged if color not found
 }
 
 // ColorByLevelName returns the appropriate color for a log level
 func ColorByLevelName(level string) string {
 	levelStr := strings.ToLower(level)
-	
+
 	switch levelStr {
 	case "error", "err", "fatal", "crit", "critical", "alert", "emergency":
 		return "red"

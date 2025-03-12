@@ -207,7 +207,7 @@ func TestStandardTemplateSyntax(t *testing.T) {
 			options := []FormatterOption{
 				WithNoColors(false),
 			}
-			
+
 			// Create a new formatter with the PreProcessTemplate function manually applied
 			// to ensure we're only testing the formatter, not the preprocessor
 			rawFormat := tt.format
@@ -339,7 +339,7 @@ func TestTemplateColorFunctions(t *testing.T) {
 	var buf strings.Builder
 	debugTmpl.Execute(&buf, data)
 
-	// Now try the actual color function with Go template 
+	// Now try the actual color function with Go template
 	colorTmpl, _ := template.New("colorTest").Funcs(template.FuncMap{
 		"mycolor": func(a interface{}, b string) string {
 			// Explicit types to make sure we know what's happening

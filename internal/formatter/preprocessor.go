@@ -1,6 +1,7 @@
 package formatter
 
 import (
+	"regexp"
 	"strings"
 )
 
@@ -24,6 +25,9 @@ func PreProcessTemplate(template string, options PreProcessTemplateOptions) stri
 	if template == "" {
 		return template
 	}
+
+	// Transform @symbol to (index . "symbol")
+	template = transformAtSymbol(template)
 
 	return transformSimpleSyntax(options, template)
 }
@@ -87,4 +91,16 @@ func transformSimpleSyntax(options PreProcessTemplateOptions, template string) s
 	}
 
 	return result.String()
+}
+
+// transformAtSymbol transforms @symbol syntax to (index . "symbol")
+// The 'symbol' can contain alphanumeric characters, period, hyphen, and underscore.
+func transformAtSymbol(template string) string {
+	// \B@([a-zA-Z0-9._-]+) matches @symbol where:
+	// - \B ensures it's not preceded by a word character (prevents matching email@example.com)
+	// - symbol consists of letters, numbers, periods, hyphens, and underscores
+	re := regexp.MustCompile(`\B@([a-zA-Z0-9._-]+)`)
+
+	// Replace all occurrences of @symbol with (index . "symbol")
+	return re.ReplaceAllString(template, `(index . "$1")`)
 }

@@ -13,8 +13,8 @@ cd "$(dirname "$0")/.."
 cat test/grpc-logs.json | dist/logista \
   --preferred_date_format='15:04:05.000' \
   --fmt='{{.ts | date | color "cyan"}} {{.level | pad 7 | colorByLevel .level}} {{.msg | colorByLevel .level | bold}}
-{{if index . "grpc.service"}}  {{"grpc" | color "blue"}} {{index . "grpc.component" | color "blue"}} {{index . "grpc.service"}}.{{index . "grpc.method"}} ({{index . "grpc.method_type" | color "magenta"}}){{if index . "grpc.time_ms"}} {{index . "grpc.time_ms"}}ms{{end}}{{if index . "grpc.code"}} → {{index . "grpc.code" | colorByLevel .level}}{{end}}
-{{end}}{{if or (index . "authz.action") (index . "authz.roles")}}  {{color "yellow" "auth" | pad 26}} : {{if index . "authz.action"}}action={{index . "authz.action" | color "yellow"}}{{end}} {{if index . "authz.roles"}}roles={{index . "authz.roles" | color "yellow"}}{{end}}
+{{if @grpc.service}}  {{"grpc" | color "blue"}} {{@grpc.component | color "blue"}} {{@grpc.service}}.{{@grpc.method}} ({{@grpc.method_type | color "magenta"}}){{if @grpc.time_ms}} {{@grpc.time_ms}}ms{{end}}{{if @grpc.code}} → {{@grpc.code | colorByLevel .level}}{{end}}
+{{end}}{{if or (@authz.action) (@authz.roles)}}  {{color "yellow" "auth" | pad 26}} : {{if @authz.action}}action={{@authz.action | color "yellow"}}{{end}} {{if @authz.roles}}roles={{@authz.roles | color "yellow"}}{{end}}
 {{end}}{{range $key, $value := .}}{{if and 
   (not (isStandardField $key))
   (not (hasPrefix $key "grpc."))
