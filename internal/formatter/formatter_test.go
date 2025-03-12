@@ -381,21 +381,6 @@ func TestTemplateFieldFiltering(t *testing.T) {
 		options  []FormatterOption
 	}{
 		{
-			name:     "isStandardField function",
-			format:   "{{.msg}} {{if isStandardField \"level\"}}(standard field){{else}}(custom field){{end}}",
-			data:     complexLog,
-			expected: "started call (standard field)",
-		},
-		{
-			name:     "custom standard fields",
-			format:   "{{.msg}} {{if isStandardField \"protocol\"}}(standard field){{else}}(custom field){{end}}",
-			data:     complexLog,
-			expected: "started call (custom field)",
-			options: []FormatterOption{
-				WithStandardFields([]string{"level", "ts", "msg", "logger"}),
-			},
-		},
-		{
 			name:     "hasPrefix function",
 			format:   "{{.msg}} {{if hasPrefix \"grpc.method\" \"grpc.\"}}(grpc field){{end}}",
 			data:     complexLog,

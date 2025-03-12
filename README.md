@@ -109,11 +109,9 @@ Or using full Go template syntax:
   - **levelColor**: Gets the appropriate color name for a log level (for use with legacy color tags)
 
 - **Field Filtering Functions**:
-  - **isStandardField**: Checks if a field is considered a standard field
   - **hasPrefix**: Checks if a string has a specific prefix
   - **getFields**: Returns all fields in the data map
   - **getFieldsWithout**: Returns fields that don't match any of the provided fields
-  - **getFieldsWithPrefix**: Returns fields that have a specific prefix
 
 ### Advanced Template Features
 
@@ -130,7 +128,7 @@ You can iterate over fields and filter them:
 
 ```
 {{range $key, $value := .}}
-  {{if not (isStandardField $key)}}
+  {{if not (eq $key "level" "timestamp" "msg")}}
     {{$key}}: {{$value}}
   {{end}}
 {{end}}
@@ -148,18 +146,12 @@ Here's a comprehensive example that clearly formats structured logs:
   GRPC: {{.grpc.service}}.{{.grpc.method}} ({{.grpc.method_type | color "yellow"}})
 {{end}}
 {{range $key, $value := .}}
-  {{if not (isStandardField $key)}}
+  {{if not (eq $key "level" "ts" "msg" "logger" "caller")}}
     {{if not (hasPrefix $key "grpc.")}}
   {{$key | dim}}: {{$value}}
     {{end}}
   {{end}}
 {{end}}
-```
-
-Configure standard fields via CLI:
-
-```
-logista --standard-fields=level,ts,msg,logger,caller
 ```
 
 ### Available Colors

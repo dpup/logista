@@ -20,8 +20,6 @@ type TemplateFormatter struct {
 	template         *template.Template
 	preferredDateFmt string
 	noColors         bool
-	standardFields   []string          // Fields considered standard (level, timestamp, message)
-	groupPrefixes    map[string]string // Mapping of group names to field prefixes (e.g. "grpc" -> "grpc.")
 }
 
 // FormatterOption is a functional option for configuring the formatter
@@ -41,20 +39,6 @@ func WithNoColors(noColors bool) FormatterOption {
 	}
 }
 
-// WithStandardFields defines which fields should be considered standard fields
-func WithStandardFields(fields []string) FormatterOption {
-	return func(tf *TemplateFormatter) {
-		tf.standardFields = fields
-	}
-}
-
-// WithGroupPrefixes defines prefixes for grouping related fields
-func WithGroupPrefixes(prefixes map[string]string) FormatterOption {
-	return func(tf *TemplateFormatter) {
-		tf.groupPrefixes = prefixes
-	}
-}
-
 // NewTemplateFormatter creates a new TemplateFormatter with the given format string
 func NewTemplateFormatter(format string, opts ...FormatterOption) (*TemplateFormatter, error) {
 	// Process template with shortcuts via the preprocessor
@@ -63,12 +47,6 @@ func NewTemplateFormatter(format string, opts ...FormatterOption) (*TemplateForm
 	// Create the formatter with default values
 	formatter := &TemplateFormatter{
 		preferredDateFmt: "2006-01-02 15:04:05",
-		standardFields:   []string{"level", "ts", "time", "timestamp", "msg", "message", "logger", "caller"},
-		groupPrefixes: map[string]string{
-			"grpc": "grpc.",
-			"db":   "db.",
-			"http": "http.",
-		},
 	}
 
 	// Apply options
@@ -91,11 +69,9 @@ func NewTemplateFormatter(format string, opts ...FormatterOption) (*TemplateForm
 		"dim":          formatter.dimFunc,
 
 		// Field filtering and categorization
-		"isStandardField":     formatter.isStandardFieldFunc,
-		"hasPrefix":           formatter.hasPrefixFunc,
-		"getFields":           formatter.getFieldsFunc,
-		"getFieldsWithout":    formatter.getFieldsWithoutFunc,
-		"getFieldsWithPrefix": formatter.getFieldsWithPrefixFunc,
+		"hasPrefix":        formatter.hasPrefixFunc,
+		"getFields":        formatter.getFieldsFunc,
+		"getFieldsWithout": formatter.getFieldsWithoutFunc,
 	})
 
 	parsed, err := tmpl.Parse(format)
@@ -150,54 +126,38 @@ func (f *TemplateFormatter) dateFunc(value interface{}) string {
 				return t.Format(f.preferredDateFmt)
 			}
 		}
-		return v // Return original if we couldn't parse it
-	case float64:
-		// Try parsing as Unix timestamp (possibly with milliseconds or microseconds)
-		sec := int64(v)
-		nsec := int64((v - float64(sec)) * 1e9)
-		t := time.Unix(sec, nsec)
-		return t.Format(f.preferredDateFmt)
-	case int:
-		// Unix timestamp (seconds only)
-		t := time.Unix(int64(v), 0)
-		return t.Format(f.preferredDateFmt)
-	case int64:
-		// Unix timestamp (seconds only)
-		t := time.Unix(v, 0)
-		return t.Format(f.preferredDateFmt)
+		return v
 	case json.Number:
-		// Handle JSON numbers
+		// Try parsing as Unix timestamp
 		if i, err := v.Int64(); err == nil {
-			t := time.Unix(i, 0)
-			return t.Format(f.preferredDateFmt)
+			return time.Unix(i, 0).Format(f.preferredDateFmt)
 		}
+		// Try parsing as Unix timestamp with fractional seconds
 		if floatVal, err := v.Float64(); err == nil {
 			sec := int64(floatVal)
 			nsec := int64((floatVal - float64(sec)) * 1e9)
-			t := time.Unix(sec, nsec)
-			return t.Format(f.preferredDateFmt)
+			return time.Unix(sec, nsec).Format(f.preferredDateFmt)
 		}
 		return v.String()
+	case int64:
+		return time.Unix(v, 0).Format(f.preferredDateFmt)
+	case float64:
+		sec := int64(v)
+		nsec := int64((v - float64(sec)) * 1e9)
+		return time.Unix(sec, nsec).Format(f.preferredDateFmt)
 	default:
-		// Try to convert to string
 		return fmt.Sprintf("%v", v)
 	}
 }
 
 // colorFunc applies a specific color to a value
-// In Go templates with pipes, arguments are passed in reverse order
-// so {{.msg | color "red"}} passes "red" as first arg and msg as second arg
 func (f *TemplateFormatter) colorFunc(colorName string, value interface{}) string {
 	if f.noColors || value == nil {
 		return fmt.Sprintf("%v", value)
 	}
 
 	content := fmt.Sprintf("%v", value)
-	if code, ok := colorCodes[colorName]; ok {
-		return fmt.Sprintf("\033[%sm%s%s", code, content, ansiReset)
-	}
-
-	return content
+	return ApplyColorToString(content, colorName)
 }
 
 // colorByLevelFunc applies color to a value based on the level
@@ -263,16 +223,6 @@ func (f *TemplateFormatter) dimFunc(value interface{}) string {
 	return fmt.Sprintf("\033[2m%s%s", content, ansiReset)
 }
 
-// isStandardFieldFunc checks if a field is in the standard fields list
-func (f *TemplateFormatter) isStandardFieldFunc(field string) bool {
-	for _, stdField := range f.standardFields {
-		if field == stdField {
-			return true
-		}
-	}
-	return false
-}
-
 // hasPrefixFunc checks if a string has a specific prefix
 func (f *TemplateFormatter) hasPrefixFunc(s, prefix string) bool {
 	return strings.HasPrefix(s, prefix)
@@ -297,19 +247,6 @@ func (f *TemplateFormatter) getFieldsWithoutFunc(data map[string]interface{}, ex
 		}
 
 		if !exclude {
-			result[key] = value
-		}
-	}
-
-	return result
-}
-
-// getFieldsWithPrefixFunc returns fields that have a specific prefix
-func (f *TemplateFormatter) getFieldsWithPrefixFunc(data map[string]interface{}, prefix string) map[string]interface{} {
-	result := make(map[string]interface{})
-
-	for key, value := range data {
-		if strings.HasPrefix(key, prefix) {
 			result[key] = value
 		}
 	}
