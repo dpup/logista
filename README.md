@@ -1,9 +1,15 @@
 # Logista
 
+_A command line utility for formatting JSON log streams in development_
+
 Logista is a CLI tool for formatting JSON log streams. It's designed to be used
 with server applications that output JSON logs, allowing for human-readable log
 formatting without requiring the server to have separate production and
 development logging formats.
+
+Example:
+
+![](./example.png)
 
 ## Installation
 
@@ -18,7 +24,7 @@ valid Go template is also a valid formatting string in Logista. This means you
 can use Go's powerful templating features, such as conditionals, loops, and
 functions, to create highly customized log formats.
 
-```
+```sh
 # Basic usage with default format
 my-server | logista
 
@@ -39,13 +45,10 @@ my-server | logista --fmt="{timestamp | date} [{level}] {message}" --preferred_d
 my-server | logista --fmt="{timestamp | date} [{level}] {msg | colorByLevel .level}"
 
 # With colored output and other formatting
-my-server | logista --fmt="{{.timestamp | date | color \"cyan\"}} [{{.level}}] {{.message | colorByLevel .level | bold}}"
+my-server | logista --fmt='{{.timestamp | date | color "cyan"}} [{{.level}}] {{.message | colorByLevel .level | bold}}'
 
 # Pretty-print complex objects like maps and arrays
 my-server | logista --fmt="{{.timestamp | date}} [{{.level}}] {{.message}} {{.context | pretty}}"
-
-# Format log entries in a nice table layout (hiding empty values and grpc.* fields)
-my-server | logista --fmt="{{.timestamp | date}} [{{.level}}] {{.message}}\n{{. | table}}"
 
 # Disable colors
 my-server | logista --fmt="{{.level | color \"red\"}} {{.message}}" --no-colors
@@ -67,15 +70,15 @@ Logista supports several syntax options for formatting logs:
 2. **@Symbol Syntax**: Fields can be accessed using the @symbol notation within Go template braces. This is especially useful for fields with special characters like periods, hyphens, or underscores.
 
    ```
-   {{@user.name}} {{@request-id}} {{@response_code}}
+   {@user.name} {@request-id} {@response_code}
    ```
 
 3. **Full Go Template Syntax**: Fields are accessed using `.fieldname` within double curly braces. This enables powerful template features like conditionals, loops, and variable assignments.
    ```
-   {{.timestamp}} [{{.level}}] {{.message}} {{.context.user.id}}
+   {{.timestamp}} [{{.level}}] {{.message}} {{if .context.user}}{{.context.user.id}}{{end}}
    ```
 
-### Template Functions
+## Template Functions
 
 Logista supports template functions that can transform field values. To use a function, add a pipe `|` after the field name, followed by the function name.
 
@@ -91,18 +94,18 @@ Or using full Go template syntax:
 {{.timestamp | date}} [{{.level}}] {{.message}}
 ```
 
-#### Available Functions
+### Value Formatting Functions
 
-**Value Formatting Functions**:
+| Command    | Description                                                                                                                                                                                                                                                                                                                                                                                        | Example                      |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| **date**   | Parses dates in various formats into a standardized format. Works with: ISO 8601 timestamps (`2024-03-10T15:04:05Z`), Unix timestamps (`1741626507`) (seconds since epoch), Unix timestamps with fractional seconds (`1741626507.9066188`), Common log formats (`10/Mar/2024:15:04:05 +0000`), and many others. Use `--preferred_date_format` to set the output format in Go's time format syntax. | `{timestamp \| date}`        |
+| **pad**    | Pads a string to a specified length.                                                                                                                                                                                                                                                                                                                                                               | `{level \| pad 10}`          |
+| **pretty** | Pretty-prints any value with proper formatting: maps as `{key=value, key=value}` with dim keys, arrays as `[value, value]` with dim commas, empty strings as `<empty>`, nil values as `<nil>`.                                                                                                                                                                                                     | `{context \| pretty}`        |
+| **table**  | Formats a map as a table with each field on a new line. Format is `key: value` with keys right-padded and dimmed. Empty values are omitted.                                                                                                                                                                                                                                                        | `{. \| table}`               |
+| **wrap**   | Wraps text to a specified width with optional indentation for wrapped lines. Takes two parameters: width (required) and indent (optional). If text exceeds the specified width, it will be wrapped to multiple lines.                                                                                                                                                                              | `{description \| wrap 80 2}` |
+| **trunc**  | Truncates text to a specified length. If the text exceeds the length, it adds an ellipsis (...). Takes one parameter: the maximum length of the text.                                                                                                                                                                                                                                              | `{message \| trunc 20}`      |
 
-| Command    | Description                                                                                                                                                                                                                                                                                                                                                                                        | Example               |
-| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
-| **date**   | Parses dates in various formats into a standardized format. Works with: ISO 8601 timestamps (`2024-03-10T15:04:05Z`), Unix timestamps (`1741626507`) (seconds since epoch), Unix timestamps with fractional seconds (`1741626507.9066188`), Common log formats (`10/Mar/2024:15:04:05 +0000`), and many others. Use `--preferred_date_format` to set the output format in Go's time format syntax. | `{timestamp \| date}` |
-| **pad**    | Pads a string to a specified length.                                                                                                                                                                                                                                                                                                                                                               | `{level \| pad 10}`   |
-| **pretty** | Pretty-prints any value with proper formatting: maps as `{key=value, key=value}` with dim keys, arrays as `[value, value]` with dim commas, empty strings as `<empty>`, nil values as `<nil>`.                                                                                                                                                                                                      | `{context \| pretty}` |
-| **table**  | Formats a map as a table with each field on a new line. Format is `key: value` with keys right-padded and dimmed. Empty values are omitted, fields matching excluded prefixes (default: "grpc.") are filtered out, and keys are sorted.                                                                                                                                                             | `{. \| table}`        |
-
-**Color Functions**:
+### Color Functions
 
 | Command          | Description                             | Example                           |
 | ---------------- | --------------------------------------- | --------------------------------- |
@@ -113,16 +116,26 @@ Or using full Go template syntax:
 | **underline**    | Underlines text                         | `{message \| underline}`          |
 | **dim**          | Makes text dim                          | `{timestamp \| dim}`              |
 
-**Field Filtering Functions**:
+The following colors are available for use with color functions:
 
-| Command       | Description                                                                                                                                         | Example                                                    |
-| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| **hasPrefix** | Checks if a string has a specific prefix                                                                                                            | `{{if hasPrefix $key "grpc."}}`                            |
-| **filter**    | Returns fields that don't match any of the provided patterns. Supports both exact field names and prefix matching with wildcards (e.g., "grpc.*")   | `{{range $key, $value := filter . "level" "grpc.*"}}`     |
+- Foreground colors: `black`, `red`, `green`, `yellow`, `blue`, `magenta`, `cyan`, `white`, `gray`
+- Bright colors: `brightred`, `brightgreen`, `brightyellow`, `brightblue`, `brightmagenta`, `brightcyan`, `brightwhite`
+- Background colors: `bg-black`, `bg-red`, `bg-green`, `bg-yellow`, `bg-blue`, `bg-magenta`, `bg-cyan`, `bg-white`, `bg-gray`
+- Bright backgrounds: `bg-brightred`, `bg-brightgreen`, `bg-brightyellow`, `bg-brightblue`, `bg-brightmagenta`, `bg-brightcyan`, `bg-brightwhite`
+- Formatting: `bold`, `italic`, `underline`, `dim`
 
-### Advanced Template Features
+Colors can be disabled with the `--no-colors` flag.
 
-When using the full Go template syntax, you get access to powerful template features like conditionals, loops, and variable assignments:
+### Field Filtering Functions
+
+| Command       | Description                                                                                                                                        | Example                                               |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| **hasPrefix** | Checks if a string has a specific prefix                                                                                                           | `{{if hasPrefix $key "grpc."}}`                       |
+| **filter**    | Returns fields that don't match any of the provided patterns. Supports both exact field names and prefix matching with wildcards (e.g., "grpc.\*") | `{{range $key, $value := filter . "level" "grpc.*"}}` |
+
+## Advanced Template Features
+
+When using the full Go template syntax, you get access to all the template features like conditionals, loops, and variable assignments:
 
 ```
 {{.ts | date | color "cyan"}} {{.level | colorByLevel .level}} {{.msg | bold}}
@@ -139,31 +152,20 @@ You can filter fields using wildcards and iterate over the results:
 {{end}}
 ```
 
-**Note**: Advanced features like conditionals and loops are only available with the full `{{.field}}` syntax, not the simplified `{field}` syntax.
-
-### Structured Log Example
+## Structured Log Example
 
 Here's a comprehensive example that clearly formats structured logs:
 
 ```go
-{{.ts | date | color "cyan"}} {{.level | colorByLevel .level}} {{.msg | bold}} ({{.logger | dim}})
-{{if hasPrefix "grpc.service" "grpc."}}
-  GRPC: {{.grpc.service}}.{{.grpc.method}} ({{.grpc.method_type | color "yellow"}})
+{ts | date | color "cyan"} {level | colorByLevel .level} {msg | bold | trunc 5}} ({logger | dim})
+{{if @grpc.service}}
+  GRPC: {@grpc.service}.{@grpc.method} ({@grpc.method_type | color "yellow"})
 {{end}}
-{{filter . "level" "ts" "msg" "logger" "caller" "grpc.*" | table}}
+{{if .description}}
+  Description: {description | wrap 80 2}
+{{end}}
+{filter . "level" "ts" "msg" "logger" "caller" "description" "grpc.*" | table}
 ```
-
-### Available Colors
-
-The following colors are available for use with color functions:
-
-- Foreground colors: `black`, `red`, `green`, `yellow`, `blue`, `magenta`, `cyan`, `white`, `gray`
-- Bright colors: `brightred`, `brightgreen`, `brightyellow`, `brightblue`, `brightmagenta`, `brightcyan`, `brightwhite`
-- Background colors: `bg-black`, `bg-red`, `bg-green`, `bg-yellow`, `bg-blue`, `bg-magenta`, `bg-cyan`, `bg-white`, `bg-gray`
-- Bright backgrounds: `bg-brightred`, `bg-brightgreen`, `bg-brightyellow`, `bg-brightblue`, `bg-brightmagenta`, `bg-brightcyan`, `bg-brightwhite`
-- Formatting: `bold`, `italic`, `underline`, `dim`
-
-Colors can be disabled with the `--no-colors` flag.
 
 ## Building from Source
 
@@ -177,4 +179,26 @@ The binary will be created in the `dist` directory.
 
 ## License
 
-MIT
+```
+MIT License
+
+Copyright (c) 2025 Daniel Pupius (pupius.com)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```

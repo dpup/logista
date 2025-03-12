@@ -60,7 +60,7 @@ func NewTemplateFormatter(format string, opts ...FormatterOption) (*TemplateForm
 	// Create the formatter with default values
 	formatter := &TemplateFormatter{
 		preferredDateFmt: "2006-01-02 15:04:05",
-		tableKeyPadding:  18,
+		tableKeyPadding:  19,
 	}
 
 	// Apply options
@@ -410,9 +410,9 @@ func (f *TemplateFormatter) tableFunc(value interface{}) string {
 		// Format the key with padding and dim effect
 		paddedKey := f.padFunc(f.tableKeyPadding, key)
 		if f.noColors {
-			builder.WriteString(fmt.Sprintf("  %s: ", paddedKey))
+			builder.WriteString(fmt.Sprintf("  %s", paddedKey))
 		} else {
-			builder.WriteString(fmt.Sprintf("  \033[2m%s\033[0m: ", paddedKey))
+			builder.WriteString(fmt.Sprintf("  \033[2m%s\033[0m", paddedKey))
 		}
 
 		// Format the value using pretty
@@ -545,7 +545,7 @@ func (f *TemplateFormatter) truncFunc(maxLen interface{}, value interface{}) str
 	if value == nil {
 		return "<no value>"
 	}
-	
+
 	// Get the text to truncate
 	text := fmt.Sprintf("%v", value)
 	if text == "" {
@@ -575,7 +575,7 @@ func (f *TemplateFormatter) truncFunc(maxLen interface{}, value interface{}) str
 	if maxLength < 4 {
 		return text[:maxLength]
 	}
-	
+
 	return text[:maxLength-3] + "..."
 }
 
@@ -587,7 +587,7 @@ func (f *TemplateFormatter) wrapFunc(width interface{}, indent interface{}, valu
 	if value == nil {
 		return "<no value>"
 	}
-	
+
 	// Get the text to wrap
 	text := fmt.Sprintf("%v", value)
 	if text == "" {
@@ -640,26 +640,26 @@ func (f *TemplateFormatter) wrapFunc(width interface{}, indent interface{}, valu
 		if !isFirstLine {
 			currentWidth = wrappedLineWidth
 		}
-		
+
 		// Check if adding this word would exceed the width
 		spaceNeeded := 0
 		if lineLength > 0 {
-			spaceNeeded = 1  // Need a space between words
+			spaceNeeded = 1 // Need a space between words
 		}
-		
+
 		if lineLength+wordLen+spaceNeeded > currentWidth {
 			// Start a new line
 			result.WriteString("\n")
-			
+
 			// Add indent if not the first line
 			if indentVal > 0 {
 				result.WriteString(indentStr)
 			}
-			
+
 			// Add the word
 			result.WriteString(word)
 			lineLength = wordLen
-			
+
 			// Mark that we're no longer on the first line
 			isFirstLine = false
 		} else {
@@ -668,7 +668,7 @@ func (f *TemplateFormatter) wrapFunc(width interface{}, indent interface{}, valu
 				result.WriteString(" ")
 				lineLength++
 			}
-			
+
 			result.WriteString(word)
 			lineLength += wordLen
 		}
