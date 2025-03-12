@@ -386,6 +386,24 @@ func TestTemplateFieldFiltering(t *testing.T) {
 			data:     complexLog,
 			expected: "started call (grpc field)",
 		},
+		{
+			name:     "filter with exact field names",
+			format:   "{{range $k, $v := filter . \"level\" \"ts\"}}{{if ne $k \"ts\"}}{{$k}}={{$v}} {{end}}{{end}}",
+			data:     complexLog,
+			expected: "caller=logging/logging.go:202 grpc.component=server grpc.method=ListGroups grpc.method_type=unary grpc.service=students.Students grpc.start_time=2025-03-10T19:47:25Z grpc.time_ms=0.011 logger=/students.Students/ListGroups msg=started call peer.address=127.0.0.1:60279 protocol=grpc ",
+		},
+		{
+			name:     "filter with wildcard pattern",
+			format:   "{{range $k, $v := filter . \"grpc.*\"}}{{if ne $k \"ts\"}}{{$k}}={{$v}} {{end}}{{end}}",
+			data:     complexLog,
+			expected: "caller=logging/logging.go:202 level=info logger=/students.Students/ListGroups msg=started call peer.address=127.0.0.1:60279 protocol=grpc ",
+		},
+		{
+			name:     "filter with multiple patterns",
+			format:   "{{range $k, $v := filter . \"level\" \"ts\" \"grpc.*\" \"peer.*\"}}{{$k}}={{$v}} {{end}}",
+			data:     complexLog,
+			expected: "caller=logging/logging.go:202 logger=/students.Students/ListGroups msg=started call protocol=grpc ",
+		},
 	}
 
 	for _, tt := range tests {

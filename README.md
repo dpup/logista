@@ -115,11 +115,10 @@ Or using full Go template syntax:
 
 **Field Filtering Functions**:
 
-| Command              | Description                                                | Example                                                            |
-| -------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------ |
-| **hasPrefix**        | Checks if a string has a specific prefix                   | `{{if hasPrefix $key "grpc."}}`                                    |
-| **getFields**        | Returns all fields in the data map                         | `{{range $key, $value := getFields .}}`                            |
-| **getFieldsWithout** | Returns fields that don't match any of the provided fields | `{{range $key, $value := getFieldsWithout . "level" "timestamp"}}` |
+| Command       | Description                                                                                                                                         | Example                                                    |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| **hasPrefix** | Checks if a string has a specific prefix                                                                                                            | `{{if hasPrefix $key "grpc."}}`                            |
+| **filter**    | Returns fields that don't match any of the provided patterns. Supports both exact field names and prefix matching with wildcards (e.g., "grpc.*")   | `{{range $key, $value := filter . "level" "grpc.*"}}`     |
 
 ### Advanced Template Features
 
@@ -132,13 +131,11 @@ When using the full Go template syntax, you get access to powerful template feat
 {{end}}
 ```
 
-You can iterate over fields and filter them:
+You can filter fields using wildcards and iterate over the results:
 
 ```
-{{range $key, $value := .}}
-  {{if not (eq $key "level" "timestamp" "msg")}}
-    {{$key}}: {{$value}}
-  {{end}}
+{{range $key, $value := filter . "level" "timestamp" "msg" "grpc.*"}}
+  {{$key}}: {{$value}}
 {{end}}
 ```
 
@@ -153,13 +150,7 @@ Here's a comprehensive example that clearly formats structured logs:
 {{if hasPrefix "grpc.service" "grpc."}}
   GRPC: {{.grpc.service}}.{{.grpc.method}} ({{.grpc.method_type | color "yellow"}})
 {{end}}
-{{range $key, $value := .}}
-  {{if not (eq $key "level" "ts" "msg" "logger" "caller")}}
-    {{if not (hasPrefix $key "grpc.")}}
-  {{$key | dim}}: {{$value}}
-    {{end}}
-  {{end}}
-{{end}}
+{{filter . "level" "ts" "msg" "logger" "caller" "grpc.*" | table}}
 ```
 
 ### Available Colors

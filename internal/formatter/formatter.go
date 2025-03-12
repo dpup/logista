@@ -66,7 +66,7 @@ func NewTemplateFormatter(format string, opts ...FormatterOption) (*TemplateForm
 	formatter := &TemplateFormatter{
 		preferredDateFmt:     "2006-01-02 15:04:05",
 		tableExcludePrefixes: []string{"grpc."},
-		tableKeyPadding:      26,
+		tableKeyPadding:      18,
 	}
 
 	// Apply options
@@ -91,9 +91,8 @@ func NewTemplateFormatter(format string, opts ...FormatterOption) (*TemplateForm
 		"dim":          formatter.dimFunc,
 
 		// Field filtering and categorization
-		"hasPrefix":        formatter.hasPrefixFunc,
-		"getFields":        formatter.getFieldsFunc,
-		"getFieldsWithout": formatter.getFieldsWithoutFunc,
+		"hasPrefix": formatter.hasPrefixFunc,
+		"filter":    formatter.filterFunc,
 	})
 
 	parsed, err := tmpl.Parse(format)
@@ -439,19 +438,25 @@ func (f *TemplateFormatter) hasPrefixFunc(s, prefix string) bool {
 	return strings.HasPrefix(s, prefix)
 }
 
-// getFieldsFunc returns all fields in the data map
-func (f *TemplateFormatter) getFieldsFunc(data map[string]interface{}) map[string]interface{} {
-	return data
-}
-
-// getFieldsWithoutFunc returns fields that don't match any of the provided fields
-func (f *TemplateFormatter) getFieldsWithoutFunc(data map[string]interface{}, excludeFields ...string) map[string]interface{} {
+// filterFunc returns a filtered map of fields based on patterns
+// It can handle exact field names or prefix patterns with wildcards
+// Example: filter . "timestamp" "level" - excludes timestamp and level fields
+// Example: filter . "grpc.*" - excludes all fields starting with "grpc."
+func (f *TemplateFormatter) filterFunc(data map[string]interface{}, excludePatterns ...string) map[string]interface{} {
 	result := make(map[string]interface{})
 
 	for key, value := range data {
 		exclude := false
-		for _, excludeKey := range excludeFields {
-			if key == excludeKey {
+		for _, pattern := range excludePatterns {
+			// Check if pattern ends with wildcard
+			if strings.HasSuffix(pattern, "*") {
+				prefix := pattern[:len(pattern)-1]
+				if strings.HasPrefix(key, prefix) {
+					exclude = true
+					break
+				}
+			} else if key == pattern {
+				// Exact field match
 				exclude = true
 				break
 			}
