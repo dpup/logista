@@ -41,6 +41,9 @@ my-server | logista --fmt="{timestamp | date} [{level}] {msg | colorByLevel .lev
 # With colored output and other formatting
 my-server | logista --fmt="{{.timestamp | date | color \"cyan\"}} [{{.level}}] {{.message | colorByLevel .level | bold}}"
 
+# Pretty-print complex objects like maps and arrays
+my-server | logista --fmt="{{.timestamp | date}} [{{.level}}] {{.message}} {{.context | pretty}}"
+
 # Disable colors
 my-server | logista --fmt="{{.level | color \"red\"}} {{.message}}" --no-colors
 
@@ -97,6 +100,7 @@ Or using full Go template syntax:
     - Many other common formats
     - Use `--preferred_date_format` to set the output format in Go's time format syntax.
   - **pad**: Pads a string to a specified length, e.g., `{level | pad 10}`
+  - **pretty**: Pretty-prints any value with proper indentation and formatting, especially useful for maps and arrays, e.g., `{context | pretty}`
 
 - **Color Functions**:
 

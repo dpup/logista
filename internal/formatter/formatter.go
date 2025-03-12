@@ -57,8 +57,9 @@ func NewTemplateFormatter(format string, opts ...FormatterOption) (*TemplateForm
 	// Create template with custom functions
 	tmpl := template.New("formatter").Funcs(template.FuncMap{
 		// Value formatting
-		"date": formatter.dateFunc,
-		"pad":  formatter.padFunc,
+		"date":  formatter.dateFunc,
+		"pad":   formatter.padFunc,
+		"pretty": formatter.prettyFunc,
 
 		// Color functions
 		"color":        formatter.colorFunc,
@@ -221,6 +222,33 @@ func (f *TemplateFormatter) dimFunc(value interface{}) string {
 
 	content := fmt.Sprintf("%v", value)
 	return fmt.Sprintf("\033[2m%s%s", content, ansiReset)
+}
+
+// prettyFunc is a template function that pretty-prints any value, with special handling for maps and arrays
+func (f *TemplateFormatter) prettyFunc(value interface{}) string {
+	if value == nil {
+		return "null"
+	}
+
+	// Handle basic types directly
+	switch v := value.(type) {
+	case string:
+		return v
+	case bool:
+		return fmt.Sprintf("%t", v)
+	case json.Number:
+		return v.String()
+	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64:
+		return fmt.Sprintf("%v", v)
+	}
+
+	// Try the json.MarshalIndent approach for simplicity and consistency
+	jsonBytes, err := json.MarshalIndent(value, "", "  ")
+	if err != nil {
+		// Fallback to simple string representation if JSON marshaling fails
+		return fmt.Sprintf("%v", value)
+	}
+	return string(jsonBytes)
 }
 
 // hasPrefixFunc checks if a string has a specific prefix

@@ -406,3 +406,141 @@ func TestTemplateFieldFiltering(t *testing.T) {
 		})
 	}
 }
+
+func TestPrettyFunc(t *testing.T) {
+	tests := []struct {
+		name      string
+		format    string
+		data      map[string]interface{}
+		contains  []string
+		notContains []string
+	}{
+		{
+			name:   "pretty basic string",
+			format: "{{.message | pretty}}",
+			data:   map[string]interface{}{"message": "hello world"},
+			contains: []string{"hello world"},
+		},
+		{
+			name:   "pretty basic number",
+			format: "{{.count | pretty}}",
+			data:   map[string]interface{}{"count": 42},
+			contains: []string{"42"},
+		},
+		{
+			name:   "pretty map",
+			format: "{{.context | pretty}}",
+			data: map[string]interface{}{
+				"context": map[string]interface{}{
+					"user": map[string]interface{}{
+						"id":   "user123",
+						"name": "John Doe",
+					},
+					"request_id": "req-456",
+				},
+			},
+			contains: []string{
+				"\"user\":",
+				"\"id\":",
+				"\"user123\"",
+				"\"name\":",
+				"\"John Doe\"",
+				"\"request_id\":",
+				"\"req-456\"",
+			},
+		},
+		{
+			name:   "pretty array",
+			format: "{{.items | pretty}}",
+			data: map[string]interface{}{
+				"items": []interface{}{1, "two", true},
+			},
+			contains: []string{
+				"[",
+				"1",
+				"\"two\"",
+				"true",
+				"]",
+			},
+		},
+		{
+			name:   "pretty nested structures",
+			format: "{{.payload | pretty}}",
+			data: map[string]interface{}{
+				"payload": map[string]interface{}{
+					"users": []interface{}{
+						map[string]interface{}{
+							"id":   "u1",
+							"role": "admin",
+						},
+						map[string]interface{}{
+							"id":   "u2",
+							"role": "user",
+						},
+					},
+					"metadata": map[string]interface{}{
+						"version": "1.0",
+					},
+				},
+			},
+			contains: []string{
+				// Users array checks
+				"\"users\":", 
+				"\"id\":", "\"u1\"",
+				"\"role\":", "\"admin\"",
+				"\"id\":", "\"u2\"",
+				"\"role\":", "\"user\"",
+				
+				// Metadata checks
+				"\"metadata\":",
+				"\"version\":", "\"1.0\"",
+			},
+		},
+		{
+			name:   "pretty nil value",
+			format: "{{.missing | pretty}}",
+			data:   map[string]interface{}{},
+			contains: []string{"null"},
+		},
+		{
+			name:   "pretty empty map",
+			format: "{{.empty | pretty}}",
+			data:   map[string]interface{}{"empty": map[string]interface{}{}},
+			contains: []string{"{}"},
+		},
+		{
+			name:   "pretty empty array",
+			format: "{{.empty | pretty}}",
+			data:   map[string]interface{}{"empty": []interface{}{}},
+			contains: []string{"[]"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			formatter, err := NewTemplateFormatter(tt.format)
+			if err != nil {
+				t.Fatalf("Failed to create formatter: %v", err)
+			}
+
+			result, err := formatter.Format(tt.data)
+			if err != nil {
+				t.Fatalf("Format failed: %v", err)
+			}
+
+			// Check for expected content
+			for _, expected := range tt.contains {
+				if !strings.Contains(result, expected) {
+					t.Errorf("Expected result to contain %q, but got:\n%s", expected, result)
+				}
+			}
+
+			// Check for unexpected content
+			for _, unexpected := range tt.notContains {
+				if strings.Contains(result, unexpected) {
+					t.Errorf("Expected result NOT to contain %q, but it does:\n%s", unexpected, result)
+				}
+			}
+		})
+	}
+}
