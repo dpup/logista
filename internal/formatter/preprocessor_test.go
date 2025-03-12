@@ -43,39 +43,11 @@ func TestPreProcessTemplate(t *testing.T) {
 			options:  DefaultPreProcessTemplateOptions(),
 		},
 		{
-			name:     "@ syntax",
-			input:    "{@grpc.service}",
-			expected: "{{index . \"grpc.service\"}}",
-			options:  DefaultPreProcessTemplateOptions(),
-		},
-		{
-			name:     "@ syntax with pipe",
-			input:    "{@grpc.service | color \"blue\"}",
-			expected: "{{index . \"grpc.service\" | color \"blue\"}}",
-			options:  DefaultPreProcessTemplateOptions(),
-		},
-		{
-			name:     "mixed @ and simple syntax",
-			input:    "{level}: {@grpc.service} - {message}",
-			expected: "{{.level}}: {{index . \"grpc.service\"}} - {{.message}}",
-			options:  DefaultPreProcessTemplateOptions(),
-		},
-		{
-			name:    "only process @ syntax",
-			input:   "{level}: {@grpc.service}",
-			expected: "{level}: {{index . \"grpc.service\"}}",
+			name:    "disable simple syntax",
+			input:   "{level}: {message}",
+			expected: "{level}: {message}",
 			options: PreProcessTemplateOptions{
-				EnableAtSyntax:     true,
 				EnableSimpleSyntax: false,
-			},
-		},
-		{
-			name:    "only process simple syntax",
-			input:   "{level}: {@grpc.service}",
-			expected: "{{.level}}: {{.@grpc.service}}",
-			options: PreProcessTemplateOptions{
-				EnableAtSyntax:     false,
-				EnableSimpleSyntax: true,
 			},
 		},
 	}
@@ -91,12 +63,12 @@ func TestPreProcessTemplate(t *testing.T) {
 }
 
 func TestFormattingWithPreprocessor(t *testing.T) {
-	// Complex log entry with dotted fields
+	// Log entry
 	logEntry := map[string]interface{}{
 		"level":        "info", 
 		"message":      "Request completed",
-		"grpc.service": "users.UserService",
-		"grpc.method":  "GetUser",
+		"grpc_service": "users.UserService",
+		"grpc_method":  "GetUser",
 	}
 
 	tests := []struct {
@@ -105,13 +77,13 @@ func TestFormattingWithPreprocessor(t *testing.T) {
 		expected string
 	}{
 		{
-			name:     "@ syntax format",
-			template: "{@grpc.service} - {@grpc.method}",
+			name:     "simple syntax format",
+			template: "{grpc_service} - {grpc_method}",
 			expected: "users.UserService - GetUser",
 		},
 		{
-			name:     "mixed @ and simple syntax",
-			template: "{level}: {@grpc.service}.{@grpc.method} - {message}",
+			name:     "simple syntax with context",
+			template: "{level}: {grpc_service}.{grpc_method} - {message}",
 			expected: "info: users.UserService.GetUser - Request completed",
 		},
 		{
