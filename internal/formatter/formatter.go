@@ -228,12 +228,15 @@ func (f *TemplateFormatter) dimFunc(value interface{}) string {
 // prettyFunc is a template function that pretty-prints any value, with special handling for maps and arrays
 func (f *TemplateFormatter) prettyFunc(value interface{}) string {
 	if value == nil {
-		return "null"
+		return "<nil>"
 	}
 
 	// Handle basic types directly
 	switch v := value.(type) {
 	case string:
+		if v == "" {
+			return "<empty>"
+		}
 		return v
 	case bool:
 		return fmt.Sprintf("%t", v)

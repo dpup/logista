@@ -15,7 +15,7 @@ cat test/grpc-logs.json | dist/logista \
   --fmt='{{.ts | date | color "cyan"}} {{.level | pad 7 | colorByLevel .level}} {{.msg | colorByLevel .level | bold}}
 {{if @grpc.service}}  {{"grpc" | color "blue"}} {{@grpc.component | color "blue"}} {{@grpc.service}}.{{@grpc.method}} ({{@grpc.method_type | color "magenta"}}){{if @grpc.time_ms}} {{@grpc.time_ms}}ms{{end}}{{if @grpc.code}} → {{@grpc.code | colorByLevel .level}}{{end}}
 {{end}}{{if or (@authz.action) (@authz.roles)}}  {{color "yellow" "auth" | pad 26}} : {{if @authz.action}}action={{@authz.action | color "yellow"}}{{end}} {{if @authz.roles}}roles={{@authz.roles | color "yellow"}}{{end}}
-{{end}}{{range $key, $value := .}}{{if and 
+{{end}}{{range $key, $value := getFieldsWithout . "level" "ts" "msg" "logger" "protocol"}}{{if and 
   (not (hasPrefix $key "grpc."))
   (not (hasPrefix $key "authz.")) 
 }}  {{$key | dim | pad 26}}: {{$value | pretty}}

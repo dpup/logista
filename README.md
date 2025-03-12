@@ -90,32 +90,32 @@ Or using full Go template syntax:
 
 #### Available Functions
 
-- **Value Formatting Functions**:
+**Value Formatting Functions**:
 
-  - **date**: Parses dates in various formats into a standardized format. Works with:
-    - ISO 8601 timestamps: `2024-03-10T15:04:05Z`
-    - Unix timestamps: `1741626507` (seconds since epoch)
-    - Unix timestamps with fractional seconds: `1741626507.9066188`
-    - Common log formats: `10/Mar/2024:15:04:05 +0000`
-    - Many other common formats
-    - Use `--preferred_date_format` to set the output format in Go's time format syntax.
-  - **pad**: Pads a string to a specified length, e.g., `{level | pad 10}`
-  - **pretty**: Pretty-prints any value with proper indentation and formatting, especially useful for maps and arrays, e.g., `{context | pretty}`
+| Command    | Description                                                                                                                                                                                                                                                                                                                                                                                        | Example               |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
+| **date**   | Parses dates in various formats into a standardized format. Works with: ISO 8601 timestamps (`2024-03-10T15:04:05Z`), Unix timestamps (`1741626507`) (seconds since epoch), Unix timestamps with fractional seconds (`1741626507.9066188`), Common log formats (`10/Mar/2024:15:04:05 +0000`), and many others. Use `--preferred_date_format` to set the output format in Go's time format syntax. | `{timestamp \| date}` |
+| **pad**    | Pads a string to a specified length.                                                                                                                                                                                                                                                                                                                                                               | `{level \| pad 10}`   |
+| **pretty** | Pretty-prints any value with nicely readable formatting.                                                                                                                                                                                                                                                                                                                                           | `{context \| pretty}` |
 
-- **Color Functions**:
+**Color Functions**:
 
-  - **color**: Apply a specific color to a value, e.g., `{level | color "red"}`
-  - **colorByLevel**: Colors a value based on the level value, e.g., `{message | colorByLevel level}`
-  - **bold**: Makes text bold, e.g., `{message | bold}`
-  - **italic**: Makes text italic, e.g., `{message | italic}`
-  - **underline**: Underlines text, e.g., `{message | underline}`
-  - **dim**: Makes text dim, e.g., `{timestamp | dim}`
-  - **levelColor**: Gets the appropriate color name for a log level (for use with legacy color tags)
+| Command          | Description                             | Example                           |
+| ---------------- | --------------------------------------- | --------------------------------- |
+| **color**        | Apply a specific color to a value       | `{level \| color "red"}`          |
+| **colorByLevel** | Colors a value based on the level value | `{message \| colorByLevel level}` |
+| **bold**         | Makes text bold                         | `{message \| bold}`               |
+| **italic**       | Makes text italic                       | `{message \| italic}`             |
+| **underline**    | Underlines text                         | `{message \| underline}`          |
+| **dim**          | Makes text dim                          | `{timestamp \| dim}`              |
 
-- **Field Filtering Functions**:
-  - **hasPrefix**: Checks if a string has a specific prefix
-  - **getFields**: Returns all fields in the data map
-  - **getFieldsWithout**: Returns fields that don't match any of the provided fields
+**Field Filtering Functions**:
+
+| Command              | Description                                                | Example                                                            |
+| -------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------ |
+| **hasPrefix**        | Checks if a string has a specific prefix                   | `{{if hasPrefix $key "grpc."}}`                                    |
+| **getFields**        | Returns all fields in the data map                         | `{{range $key, $value := getFields .}}`                            |
+| **getFieldsWithout** | Returns fields that don't match any of the provided fields | `{{range $key, $value := getFieldsWithout . "level" "timestamp"}}` |
 
 ### Advanced Template Features
 
@@ -144,7 +144,7 @@ You can iterate over fields and filter them:
 
 Here's a comprehensive example that clearly formats structured logs:
 
-```
+```go
 {{.ts | date | color "cyan"}} {{.level | colorByLevel .level}} {{.msg | bold}} ({{.logger | dim}})
 {{if hasPrefix "grpc.service" "grpc."}}
   GRPC: {{.grpc.service}}.{{.grpc.method}} ({{.grpc.method_type | color "yellow"}})

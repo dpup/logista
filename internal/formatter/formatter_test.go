@@ -530,7 +530,13 @@ func TestPrettyFunc(t *testing.T) {
 			name:   "pretty nil value",
 			format: "{{.missing | pretty}}",
 			data:   map[string]interface{}{},
-			contains: []string{"null"},
+			contains: []string{"<nil>"},
+		},
+		{
+			name:   "pretty empty string",
+			format: "{{.empty | pretty}}",
+			data:   map[string]interface{}{"empty": ""},
+			contains: []string{"<empty>"},
 		},
 		{
 			name:   "pretty empty map",
