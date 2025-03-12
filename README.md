@@ -44,6 +44,9 @@ my-server | logista --fmt="{{.timestamp | date | color \"cyan\"}} [{{.level}}] {
 # Pretty-print complex objects like maps and arrays
 my-server | logista --fmt="{{.timestamp | date}} [{{.level}}] {{.message}} {{.context | pretty}}"
 
+# Format log entries in a nice table layout (hiding empty values and grpc.* fields)
+my-server | logista --fmt="{{.timestamp | date}} [{{.level}}] {{.message}}\n{{. | table}}"
+
 # Disable colors
 my-server | logista --fmt="{{.level | color \"red\"}} {{.message}}" --no-colors
 
@@ -96,7 +99,8 @@ Or using full Go template syntax:
 | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
 | **date**   | Parses dates in various formats into a standardized format. Works with: ISO 8601 timestamps (`2024-03-10T15:04:05Z`), Unix timestamps (`1741626507`) (seconds since epoch), Unix timestamps with fractional seconds (`1741626507.9066188`), Common log formats (`10/Mar/2024:15:04:05 +0000`), and many others. Use `--preferred_date_format` to set the output format in Go's time format syntax. | `{timestamp \| date}` |
 | **pad**    | Pads a string to a specified length.                                                                                                                                                                                                                                                                                                                                                               | `{level \| pad 10}`   |
-| **pretty** | Pretty-prints any value with nicely readable formatting.                                                                                                                                                                                                                                                                                                                                           | `{context \| pretty}` |
+| **pretty** | Pretty-prints any value with proper formatting: maps as `{key=value, key=value}` with dim keys, arrays as `[value, value]` with dim commas, empty strings as `<empty>`, nil values as `<nil>`.                                                                                                                                                                                                      | `{context \| pretty}` |
+| **table**  | Formats a map as a table with each field on a new line. Format is `key: value` with keys right-padded and dimmed. Empty values are omitted, fields matching excluded prefixes (default: "grpc.") are filtered out, and keys are sorted.                                                                                                                                                             | `{. \| table}`        |
 
 **Color Functions**:
 

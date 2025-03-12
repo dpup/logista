@@ -407,6 +407,190 @@ func TestTemplateFieldFiltering(t *testing.T) {
 	}
 }
 
+func TestTableFunc(t *testing.T) {
+	tests := []struct {
+		name             string
+		format           string
+		data             map[string]interface{}
+		contains         []string
+		notContains      []string
+		noColors         bool
+		excludePrefixes  []string
+		keyPadding       int
+	}{
+		{
+			name:   "basic table",
+			format: "{{. | table}}",
+			data: map[string]interface{}{
+				"level":   "info",
+				"message": "Application started",
+				"time":    "2025-03-10T15:04:05Z",
+				"status":  200,
+			},
+			contains: []string{
+				"level",
+				"message",
+				"time",
+				"status",
+				"Application started",
+				"200",
+			},
+		},
+		{
+			name:   "table with empty values omitted",
+			format: "{{. | table}}",
+			data: map[string]interface{}{
+				"level":     "info",
+				"message":   "Application started",
+				"empty_str": "",
+				"nil_value": nil,
+				"status":    200,
+			},
+			contains: []string{
+				"level",
+				"message",
+				"status",
+			},
+			notContains: []string{
+				"empty_str",
+				"nil_value",
+			},
+		},
+		{
+			name:   "table with exclusion prefixes",
+			format: "{{. | table}}",
+			data: map[string]interface{}{
+				"level":           "info",
+				"message":         "Application started",
+				"grpc.method":     "GetUser",
+				"grpc.service":    "UserService",
+				"http.status":     200,
+				"http.user_agent": "browser",
+			},
+			contains: []string{
+				"level",
+				"message",
+				"http.status",
+				"http.user_agent",
+			},
+			notContains: []string{
+				"grpc.method",
+				"grpc.service",
+			},
+			excludePrefixes: []string{"grpc."},
+		},
+		{
+			name:   "table with custom exclude prefixes",
+			format: "{{. | table}}",
+			data: map[string]interface{}{
+				"level":           "info",
+				"message":         "Application started",
+				"grpc.method":     "GetUser",
+				"http.status":     200,
+				"http.user_agent": "browser",
+			},
+			contains: []string{
+				"level",
+				"message",
+				"grpc.method",
+			},
+			notContains: []string{
+				"http.status",
+				"http.user_agent",
+			},
+			excludePrefixes: []string{"http."},
+		},
+		{
+			name:   "table with custom key padding",
+			format: "{{. | table}}",
+			data: map[string]interface{}{
+				"level":   "info",
+				"message": "Application started",
+			},
+			keyPadding: 10,
+		},
+		{
+			name:   "table with no colors",
+			format: "{{. | table}}",
+			data: map[string]interface{}{
+				"level":   "info",
+				"message": "Application started",
+			},
+			noColors: true,
+		},
+		{
+			name:   "table with nested data",
+			format: "{{. | table}}",
+			data: map[string]interface{}{
+				"level":   "info",
+				"message": "Application started",
+				"context": map[string]interface{}{
+					"user": map[string]interface{}{
+						"id":   123,
+						"name": "John",
+					},
+				},
+			},
+			contains: []string{
+				"level",
+				"message",
+				"context",
+				"{",  // Just check for basic structure elements, not the exact format
+				"user",
+				"id",
+				"123",
+				"name",
+				"John",
+			},
+		},
+		{
+			name:   "empty table",
+			format: "{{.empty | table}}",
+			data:   map[string]interface{}{"empty": map[string]interface{}{}},
+			contains: []string{""},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			opts := []FormatterOption{}
+			if tt.noColors {
+				opts = append(opts, WithNoColors(true))
+			}
+			if tt.excludePrefixes != nil {
+				opts = append(opts, WithTableExcludePrefixes(tt.excludePrefixes))
+			}
+			if tt.keyPadding != 0 {
+				opts = append(opts, WithTableKeyPadding(tt.keyPadding))
+			}
+			
+			formatter, err := NewTemplateFormatter(tt.format, opts...)
+			if err != nil {
+				t.Fatalf("Failed to create formatter: %v", err)
+			}
+
+			result, err := formatter.Format(tt.data)
+			if err != nil {
+				t.Fatalf("Format failed: %v", err)
+			}
+
+			// Check for expected content
+			for _, expected := range tt.contains {
+				if !strings.Contains(result, expected) {
+					t.Errorf("Expected result to contain %q, but got:\n%s", expected, result)
+				}
+			}
+
+			// Check for unexpected content
+			for _, unexpected := range tt.notContains {
+				if strings.Contains(result, unexpected) {
+					t.Errorf("Expected result NOT to contain %q, but it does:\n%s", unexpected, result)
+				}
+			}
+		})
+	}
+}
+
 func TestPrettyFunc(t *testing.T) {
 	tests := []struct {
 		name      string

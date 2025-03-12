@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"sort"
 	"strings"
 	"text/template"
 	"time"
@@ -18,9 +19,11 @@ type Formatter interface {
 
 // TemplateFormatter formats logs using a Go template
 type TemplateFormatter struct {
-	template         *template.Template
-	preferredDateFmt string
-	noColors         bool
+	template             *template.Template
+	preferredDateFmt     string
+	noColors             bool
+	tableExcludePrefixes []string
+	tableKeyPadding      int
 }
 
 // FormatterOption is a functional option for configuring the formatter
@@ -40,6 +43,20 @@ func WithNoColors(noColors bool) FormatterOption {
 	}
 }
 
+// WithTableExcludePrefixes sets prefixes for fields to exclude from table output
+func WithTableExcludePrefixes(prefixes []string) FormatterOption {
+	return func(tf *TemplateFormatter) {
+		tf.tableExcludePrefixes = prefixes
+	}
+}
+
+// WithTableKeyPadding sets the padding length for keys in table output
+func WithTableKeyPadding(padding int) FormatterOption {
+	return func(tf *TemplateFormatter) {
+		tf.tableKeyPadding = padding
+	}
+}
+
 // NewTemplateFormatter creates a new TemplateFormatter with the given format string
 func NewTemplateFormatter(format string, opts ...FormatterOption) (*TemplateFormatter, error) {
 	// Process template with shortcuts via the preprocessor
@@ -47,7 +64,9 @@ func NewTemplateFormatter(format string, opts ...FormatterOption) (*TemplateForm
 
 	// Create the formatter with default values
 	formatter := &TemplateFormatter{
-		preferredDateFmt: "2006-01-02 15:04:05",
+		preferredDateFmt:     "2006-01-02 15:04:05",
+		tableExcludePrefixes: []string{"grpc."},
+		tableKeyPadding:      26,
 	}
 
 	// Apply options
@@ -58,9 +77,10 @@ func NewTemplateFormatter(format string, opts ...FormatterOption) (*TemplateForm
 	// Create template with custom functions
 	tmpl := template.New("formatter").Funcs(template.FuncMap{
 		// Value formatting
-		"date":  formatter.dateFunc,
-		"pad":   formatter.padFunc,
+		"date":   formatter.dateFunc,
+		"pad":    formatter.padFunc,
 		"pretty": formatter.prettyFunc,
+		"table":  formatter.tableFunc,
 
 		// Color functions
 		"color":        formatter.colorFunc,
@@ -336,6 +356,81 @@ func (f *TemplateFormatter) prettyMap(m map[string]interface{}) string {
 	}
 
 	builder.WriteString("}")
+	return builder.String()
+}
+
+// tableFunc formats a map as a table with each field on a new line
+// Format is "key: value" with keys right-padded and dimmed
+// Empty or nil values are omitted, and fields with specified prefixes are excluded
+func (f *TemplateFormatter) tableFunc(value interface{}) string {
+	if value == nil {
+		return ""
+	}
+
+	// Convert to map if possible
+	var dataMap map[string]interface{}
+	switch v := value.(type) {
+	case map[string]interface{}:
+		dataMap = v
+	default:
+		// For non-map types, return as is using pretty formatting
+		return f.prettyFunc(value)
+	}
+
+	if len(dataMap) == 0 {
+		return ""
+	}
+
+	// Get a sorted list of keys for consistent output
+	var keys []string
+	for key := range dataMap {
+		// Skip excluded prefixes
+		excluded := false
+		for _, prefix := range f.tableExcludePrefixes {
+			if strings.HasPrefix(key, prefix) {
+				excluded = true
+				break
+			}
+		}
+		if !excluded {
+			keys = append(keys, key)
+		}
+	}
+	sort.Strings(keys)
+
+	// Build the table
+	var builder strings.Builder
+	for i, key := range keys {
+		val := dataMap[key]
+
+		// Skip empty values (nil or empty string)
+		isEmpty := val == nil
+		if !isEmpty {
+			if str, ok := val.(string); ok && str == "" {
+				isEmpty = true
+			}
+		}
+		if isEmpty {
+			continue
+		}
+
+		// Add newline between fields
+		if i > 0 {
+			builder.WriteString("\n")
+		}
+
+		// Format the key with padding and dim effect
+		paddedKey := f.padFunc(f.tableKeyPadding, key)
+		if f.noColors {
+			builder.WriteString(fmt.Sprintf("  %s: ", paddedKey))
+		} else {
+			builder.WriteString(fmt.Sprintf("  \033[2m%s\033[0m: ", paddedKey))
+		}
+
+		// Format the value using pretty
+		builder.WriteString(f.prettyFunc(val))
+	}
+
 	return builder.String()
 }
 
