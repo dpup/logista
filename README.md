@@ -152,19 +152,27 @@ Colors can be disabled with the `--no-colors` flag.
 
 When using the full Go template syntax, you get access to all the template features like conditionals, loops, and variable assignments:
 
-```
-{{.ts | date | color "cyan"}} {{.level | colorByLevel .level}} {{.msg | bold}}
-{{if hasPrefix "grpc.service" "grpc."}}
-  GRPC: {{.grpc.service}}.{{.grpc.method}} ({{.grpc.method_type}})
-{{end}}
+```go
+{{- $timestamp := .timestamp | date | color "cyan" -}}
+{{- $level := .level | colorByLevel .level -}}
+{{- $message := .msg | bold -}}
+{{- $grpcService := index . "grpc.service" -}}
+{{- $grpcMethod := index . "grpc.method" -}}
+{{- $grpcMethodType := index . "grpc.method_type" -}}
+
+{{ $timestamp }} {{ $level }} {{ $message }}
+{{ if $grpcService }}
+  GRPC: {{ $grpcService }}.{{ $grpcMethod }} ({{ $grpcMethodType | color "yellow" }})
+{{ end }}
 ```
 
 You can filter fields using wildcards and iterate over the results:
 
-```
+```go
 {{range $key, $value := filter . "level" "timestamp" "msg" "grpc.*"}}
-  {{$key}}: {{$value}}
+{{$key}}: {{$value}}
 {{end}}
+
 ```
 
 ## Structured Log Example
@@ -172,11 +180,11 @@ You can filter fields using wildcards and iterate over the results:
 Here's a comprehensive example that clearly formats structured logs:
 
 ```go
-{ts | date | color "cyan"} {level | colorByLevel .level} {msg | bold | trunc 5}} ({logger | dim})
+{ts | date | color "cyan"} {level | colorByLevel .level} {msg | bold | trunc 15}} ({logger | dim})
 {{if @grpc.service}}
   GRPC: {@grpc.service}.{@grpc.method} ({@grpc.method_type | color "yellow"})
 {{end}}
-{{if .description}}
+{{if @description}}
   Description: {description | wrap 80 2}
 {{end}}
 {filter . "level" "ts" "msg" "logger" "caller" "description" "grpc.*" | table}
