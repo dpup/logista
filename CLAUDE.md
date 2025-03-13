@@ -1,6 +1,7 @@
 # Logista Development Guide
 
 ## Build & Test Commands
+
 - `make build` - Build binary in dist/
 - `make test` - Run all tests
 - `make test-coverage` - Run tests with coverage report
@@ -8,10 +9,11 @@
 - `make lint` - Run golangci-lint
 - `make fmt` - Format code (go fmt, goimports, gofmt)
 - `make fmt-check` - Verify formatting
-- `make run-test` - Test with sample logs
+- `make run-demo` - Manual test with sample logs
 - `make all` - Run lint, test, and build
 
 ## Code Style Guidelines
+
 - Follow standard Go formatting (gofmt)
 - Use 4-space indentation
 - Employ functional options pattern for configuration
@@ -25,6 +27,7 @@
 - Handle all errors explicitly
 
 ## Project Structure
+
 - cmd/ - Command-line interface
 - internal/ - Core implementation
 - test/ - Testing scripts and data

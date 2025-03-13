@@ -13,10 +13,10 @@ cd "$(dirname "$0")/.."
 
 echo -e "\n=== Using conditionals to power format ==="
 cat test/basic-logs.json | dist/logista \
-  --preferred_date_format='15:04:05' \
-  --fmt='{{.timestamp | date | color "cyan"}} [{{.level | pad 7}}] {{if eq .level "error"}}{{.message | color "red" | bold}}{{else if eq .level "warning"}}{{.message | color "yellow"}}{{else if eq .level "info"}}{{.message}}{{else if eq .level "debug"}}{{.message | dim}}{{else}}{{.message}}{{end}}'
+  --date_format='15:04:05' \
+  --format='{{.timestamp | date | color "cyan"}} [{{.level | pad 7}}] {{if eq .level "error"}}{{.message | color "red" | bold}}{{else if eq .level "warning"}}{{.message | color "yellow"}}{{else if eq .level "info"}}{{.message}}{{else if eq .level "debug"}}{{.message | dim}}{{else}}{{.message}}{{end}}'
 
 echo -e "\n\n=== Using colorByLevel (simpler alternative) ==="
 cat test/basic-logs.json | dist/logista \
-  --preferred_date_format='15:04:05' \
-  --fmt='{{.timestamp | date | color "cyan"}} [{{.level | pad 7}}] {{.message | colorByLevel .level}}'
+  --date_format='15:04:05' \
+  --format='{{.timestamp | date | color "cyan"}} [{{.level | pad 7}}] {{.message | colorByLevel .level}}'
