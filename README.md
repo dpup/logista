@@ -262,6 +262,29 @@ cd logista
 make install
 ```
 
+## Releasing
+
+Logista uses [GoReleaser](https://goreleaser.com/) to automate releases. When a new tag is pushed to GitHub, a GitHub Actions workflow automatically builds binaries for multiple platforms and creates a new GitHub release.
+
+To create a new release:
+
+```
+make release VERSION=1.0.0
+```
+
+This will:
+
+1. Create a new git tag `v1.0.0`
+2. Push the tag to GitHub
+3. Which, triggers a GitHub Actions workflow that uses GoReleaser to build binaries
+4. Create a new GitHub release with the built binaries
+
+To test the release process locally without publishing:
+
+```
+make release-dry-run
+```
+
 ## License
 
 ```

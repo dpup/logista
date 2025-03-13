@@ -1,4 +1,4 @@
-.PHONY: build clean test test-coverage shell-test run-test lint fmt fmt-check install release all help
+.PHONY: build clean test test-coverage shell-test run-test lint fmt fmt-check install release release-dry-run all help
 
 # Variables
 BINARY_NAME=logista
@@ -39,7 +39,7 @@ test-coverage:
 
 # Run linters
 lint:
-	go tool golangci-lint run ./...
+	golangci-lint run ./...
 
 # Format code
 fmt:
@@ -59,7 +59,7 @@ fmt-check:
 install:
 	go install ${BUILD_FLAGS}
 
-# Create a new release
+# Create a new release (push tag to GitHub to trigger GitHub Actions)
 release:
 	@if [ -z "$(VERSION)" ]; then \
 		echo "Error: VERSION is required. Use 'make release VERSION=x.y.z'"; \
@@ -67,6 +67,12 @@ release:
 	fi
 	git tag -a v$(VERSION) -m "Release $(VERSION)"
 	git push origin v$(VERSION)
+	@echo "Release v$(VERSION) tag pushed to GitHub."
+	@echo "GitHub Actions will now build and publish the release."
+
+# Test GoReleaser configuration locally (no actual release)
+release-dry-run:
+	goreleaser release --snapshot --clean --skip=publish
 
 # Default target
 all: lint test build
@@ -74,16 +80,17 @@ all: lint test build
 # Show help
 help:
 	@echo "Available targets:"
-	@echo "  build         - Build the binary"
-	@echo "  clean         - Clean build artifacts"
-	@echo "  test          - Run all tests (unit tests and shell tests)"
-	@echo "  shell-test    - Run shell tests to verify CLI functionality"
-	@echo "  test-coverage - Run tests with coverage report"
-	@echo "  lint          - Run linters"
-	@echo "  fmt           - Format code"
-	@echo "  fmt-check     - Check for formatting errors"
-	@echo "  install       - Install the binary"
-	@echo "  release       - Create a new release (requires VERSION=x.y.z)"
-	@echo "  run-test      - Run the tool manually with test logs"
-	@echo "  all           - Run lint, test and build"
-	@echo "  help          - Show this help"
+	@echo "  build           - Build the binary"
+	@echo "  clean           - Clean build artifacts"
+	@echo "  test            - Run all tests (unit tests and shell tests)"
+	@echo "  shell-test      - Run shell tests to verify CLI functionality"
+	@echo "  test-coverage   - Run tests with coverage report"
+	@echo "  lint            - Run linters"
+	@echo "  fmt             - Format code"
+	@echo "  fmt-check       - Check for formatting errors"
+	@echo "  install         - Install the binary"
+	@echo "  release         - Create a new release (requires VERSION=x.y.z)"
+	@echo "  release-dry-run - Test GoReleaser configuration locally (no actual release)"
+	@echo "  run-test        - Run the tool manually with test logs"
+	@echo "  all             - Run lint, test and build"
+	@echo "  help            - Show this help"
