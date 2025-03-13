@@ -36,7 +36,7 @@ my-server | logista
 my-server 2>&1 | logista
 
 # Basic usage with gotool
-my-server | go tool github.com/dpup/logista/cmd/logista
+my-server | go tool github.com/dpup/logista
 
 # Simple syntax with custom log formats
 my-server | logista --fmt="{timestamp} [{level}] {message}"
