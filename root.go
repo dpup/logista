@@ -30,7 +30,7 @@ const (
 // Initialize cobra command
 var rootCmd = &cobra.Command{
 	Use:   "logista",
-	Short: "Logista is a tool for formatting JSON log streams",
+	Short: "Utility for formatting JSON log streams",
 	Long: `Logista is a CLI tool that accepts a stream of JSON log entries 
 and formats them according to a specified template.`,
 	RunE:    runLogista,
