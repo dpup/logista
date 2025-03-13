@@ -276,9 +276,9 @@ func TestProcessStreamWithSkip(t *testing.T) {
 		},
 		{
 			name: "skip by multiple patterns",
-			input: `{"level":"info","logger":"Service.method1","message":"test1"}` + "\n" + 
-			       `{"level":"error","logger":"Service.method2","message":"test2"}` + "\n" + 
-			       `{"level":"debug","logger":"Uploader.download","message":"test3"}`,
+			input: `{"level":"info","logger":"Service.method1","message":"test1"}` + "\n" +
+				`{"level":"error","logger":"Service.method2","message":"test2"}` + "\n" +
+				`{"level":"debug","logger":"Uploader.download","message":"test3"}`,
 			skipPatterns: []SkipPattern{
 				{Field: "level", Value: "error"},
 				{Field: "logger", Value: "Uploader.download"},
@@ -324,11 +324,14 @@ func TestProcessStreamWithSkip(t *testing.T) {
 	}
 }
 
+// testColoredString is a constant for testing color output
+const testColoredString = "\033[31mtest\033[0m"
+
 func TestColorFunc(t *testing.T) {
 	formatter := &TemplateFormatter{noColors: false}
 
 	result := formatter.colorFunc("red", "test")
-	expected := "\033[31mtest\033[0m"
+	expected := testColoredString
 
 	if result != expected {
 		t.Errorf("colorFunc failed: expected %q, got %q", expected, result)
@@ -375,7 +378,7 @@ func TestTemplateWithFunctions(t *testing.T) {
 	}
 
 	result := buf.String()
-	expected := "\033[31mtest\033[0m"
+	expected := testColoredString
 
 	if result != expected {
 		t.Errorf("Template function failed: expected %q, got %q", expected, result)
@@ -409,7 +412,9 @@ func TestTemplateColorFunctions(t *testing.T) {
 	}).Parse(`{{.message | debugColor "red"}}`)
 
 	var buf strings.Builder
-	debugTmpl.Execute(&buf, data)
+	if err := debugTmpl.Execute(&buf, data); err != nil {
+		t.Fatalf("Failed to execute debug template: %v", err)
+	}
 
 	// Now try the actual color function with Go template
 	colorTmpl, _ := template.New("colorTest").Funcs(template.FuncMap{
@@ -424,7 +429,9 @@ func TestTemplateColorFunctions(t *testing.T) {
 	}).Parse(`{{.message | mycolor "red"}}`)
 
 	buf.Reset()
-	colorTmpl.Execute(&buf, data)
+	if err := colorTmpl.Execute(&buf, data); err != nil {
+		t.Fatalf("Failed to execute color template: %v", err)
+	}
 	t.Logf("explicit function result: %q", buf.String())
 }
 

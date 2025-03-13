@@ -5,6 +5,16 @@ import (
 	"strings"
 )
 
+// Color name constants
+const (
+	colorRed    = "red"
+	colorYellow = "yellow"
+	colorGreen  = "green"
+	colorCyan   = "cyan"
+	colorBlue   = "blue"
+	colorWhite  = "white"
+)
+
 // Color names and their ANSI color codes
 var colorCodes = map[string]string{
 	// Foreground colors
@@ -58,7 +68,7 @@ var colorCodes = map[string]string{
 const ansiReset = "\033[0m"
 
 // ApplyColorToString applies a specific color to a string value
-func ApplyColorToString(content string, colorName string) string {
+func ApplyColorToString(content, colorName string) string {
 	if colorName == "none" {
 		return content
 	}
@@ -76,16 +86,16 @@ func ColorByLevelName(level string) string {
 
 	switch levelStr {
 	case "error", "err", "fatal", "crit", "critical", "alert", "emergency":
-		return "red"
+		return colorRed
 	case "warn", "warning":
-		return "yellow"
+		return colorYellow
 	case "info", "information":
-		return "green"
+		return colorGreen
 	case "debug":
-		return "cyan"
+		return colorCyan
 	case "trace":
-		return "blue"
+		return colorBlue
 	default:
-		return "white"
+		return colorWhite
 	}
 }

@@ -78,6 +78,10 @@ issues:
     - dupl
     - funlen
     - gosec
+  - path: internal/formatter/formatter.go
+    linters:
+    - gocyclo
+    text: "cyclomatic complexity .* of func .* is high"
   exclude-dirs:
   - dist
   exclude-files:

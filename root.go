@@ -129,7 +129,7 @@ func runLogista(cmd *cobra.Command, args []string) error {
 	// Process skip patterns
 	skipFlags := viper.GetStringSlice(keySkip)
 	var skipPatterns []formatter.SkipPattern
-	
+
 	for _, skipFlag := range skipFlags {
 		parts := strings.SplitN(skipFlag, "=", 2)
 		if len(parts) == 2 {

@@ -12,6 +12,11 @@ import (
 	"time"
 )
 
+// Common constants
+const (
+	noValueStr = "<no value>"
+)
+
 // Formatter is an interface for formatting JSON log entries
 type Formatter interface {
 	// Format converts a log entry map to a formatted string
@@ -63,11 +68,12 @@ func NewTemplateFormatterWithOptions(format string, preprocessOptions PreProcess
 
 	// Create wrapper for table function to ensure backward compatibility
 	tableWrapper := func(args ...interface{}) string {
-		if len(args) == 0 {
+		switch len(args) {
+		case 0:
 			return ""
-		} else if len(args) == 1 {
+		case 1:
 			return formatter.tableFunc(nil, args[0])
-		} else {
+		default:
 			// Last argument is the data
 			data := args[len(args)-1]
 			// First argument is the padding
@@ -194,7 +200,7 @@ func (f *TemplateFormatter) colorFunc(colorName string, value interface{}) strin
 // colorByLevelFunc applies color to a value based on the level
 // In Go templates with pipes, arguments are passed in reverse order
 // so {{.msg | colorByLevel .level}} passes level as first arg and msg as second arg
-func (f *TemplateFormatter) colorByLevelFunc(level interface{}, value interface{}) string {
+func (f *TemplateFormatter) colorByLevelFunc(level, value interface{}) string {
 	if f.noColors || value == nil {
 		return fmt.Sprintf("%v", value)
 	}
@@ -326,7 +332,7 @@ func (f *TemplateFormatter) prettyArray(arr []interface{}) string {
 			if f.noColors {
 				builder.WriteString(", ")
 			} else {
-				builder.WriteString(fmt.Sprintf("\033[2m, \033[0m"))
+				builder.WriteString("\033[2m, \033[0m")
 			}
 		}
 	}
@@ -350,7 +356,7 @@ func (f *TemplateFormatter) prettyMap(m map[string]interface{}) string {
 			if f.noColors {
 				builder.WriteString(", ")
 			} else {
-				builder.WriteString(fmt.Sprintf("\033[2m, \033[0m"))
+				builder.WriteString("\033[2m, \033[0m")
 			}
 		}
 
@@ -374,7 +380,7 @@ func (f *TemplateFormatter) prettyMap(m map[string]interface{}) string {
 // Format is "key: value" with keys right-padded and dimmed
 // Empty or nil values are omitted (use with filter function for field exclusion)
 // An optional padding length can be specified for the keys, defaults to 19 if not provided
-func (f *TemplateFormatter) tableFunc(padding interface{}, value interface{}) string {
+func (f *TemplateFormatter) tableFunc(padding, value interface{}) string {
 	if value == nil {
 		return ""
 	}
@@ -578,10 +584,10 @@ func (f *TemplateFormatter) durationFunc(value interface{}) string {
 // truncFunc is a template function that truncates text to a specified length
 // and adds an ellipsis if the text was truncated.
 // Usage: {{.message | trunc 20}}
-func (f *TemplateFormatter) truncFunc(maxLen interface{}, value interface{}) string {
+func (f *TemplateFormatter) truncFunc(maxLen, value interface{}) string {
 	// Handle nil case
 	if value == nil {
-		return "<no value>"
+		return noValueStr
 	}
 
 	// Get the text to truncate
@@ -620,10 +626,10 @@ func (f *TemplateFormatter) truncFunc(maxLen interface{}, value interface{}) str
 // wrapFunc is a template function that wraps text to a specified width
 // It takes a width parameter (required) and an optional indent parameter
 // for wrapped lines. Usage: {{.description | wrap 80 2}}
-func (f *TemplateFormatter) wrapFunc(width interface{}, indent interface{}, value interface{}) string {
+func (f *TemplateFormatter) wrapFunc(width, indent, value interface{}) string {
 	// Handle nil case
 	if value == nil {
-		return "<no value>"
+		return noValueStr
 	}
 
 	// Get the text to wrap
