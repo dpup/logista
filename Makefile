@@ -1,4 +1,4 @@
-.PHONY: build clean test test-coverage shell-test run-test lint fmt fmt-check install release release-dry-run all help
+.PHONY: build clean test test-coverage shell-test run-demo lint fmt fmt-check install release release-dry-run all help
 
 # Variables
 BINARY_NAME=logista
@@ -28,7 +28,7 @@ shell-test:
 	./test/run_test.sh
 
 # Run the tool manually with test logs
-run-test: build
+run-demo: build
 	./test/print_basic_logs.sh
 	./test/print_grpc_logs.sh
 
@@ -91,6 +91,6 @@ help:
 	@echo "  install         - Install the binary"
 	@echo "  release         - Create a new release (requires VERSION=x.y.z)"
 	@echo "  release-dry-run - Test GoReleaser configuration locally (no actual release)"
-	@echo "  run-test        - Run the tool manually with test logs"
+	@echo "  run-demo        - Run the tool manually with test logs"
 	@echo "  all             - Run lint, test and build"
 	@echo "  help            - Show this help"
