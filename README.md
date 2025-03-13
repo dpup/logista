@@ -101,7 +101,7 @@ Or using full Go template syntax:
 | **date**   | Parses dates in various formats into a standardized format. Works with: ISO 8601 timestamps (`2024-03-10T15:04:05Z`), Unix timestamps (`1741626507`) (seconds since epoch), Unix timestamps with fractional seconds (`1741626507.9066188`), Common log formats (`10/Mar/2024:15:04:05 +0000`), and many others. Use `--date_format` to set the output format in Go's time format syntax. | `{timestamp \| date}`        |
 | **pad**    | Pads a string to a specified length.                                                                                                                                                                                                                                                                                                                                                     | `{level \| pad 10}`          |
 | **pretty** | Pretty-prints any value with proper formatting: maps as `{key=value, key=value}` with dim keys, arrays as `[value, value]` with dim commas, empty strings as `<empty>`, nil values as `<nil>`.                                                                                                                                                                                           | `{context \| pretty}`        |
-| **table**  | Formats a map as a table with each field on a new line. Format is `key: value` with keys right-padded and dimmed. Empty values are omitted.                                                                                                                                                                                                                                              | `{. \| table}`               |
+| **table**  | Formats a map as a table with each field on a new line. Format is `key: value` with keys right-padded and dimmed. Empty values are omitted. Takes an optional padding parameter to control key column width.                                                                                                                                                                             | `{. \| table}` or `{. \| table 25}`  |
 | **wrap**   | Wraps text to a specified width with optional indentation for wrapped lines. Takes two parameters: width (required) and indent (optional). If text exceeds the specified width, it will be wrapped to multiple lines.                                                                                                                                                                    | `{description \| wrap 80 2}` |
 | **trunc**  | Truncates text to a specified length. If the text exceeds the length, it adds an ellipsis (...). Takes one parameter: the maximum length of the text.                                                                                                                                                                                                                                    | `{message \| trunc 20}`      |
 
@@ -179,7 +179,6 @@ Logista supports configuration via command-line flags, environment variables, an
 --enable_simple_syntax       Enable simple {field} syntax in templates (default true)
 --format string              Format template (default "{{.timestamp | date}} {{.level}} {{.message}}")
 --no_colors                  Disable colored output
---table_key_padding int      Padding length for keys in table output (default 19)
 ```
 
 ### Environment Variables
@@ -192,7 +191,6 @@ LOGISTA_DATE_FORMAT          Preferred date format for the date function
 LOGISTA_ENABLE_SIMPLE_SYNTAX Enable simple {field} syntax in templates
 LOGISTA_FORMAT               Format template
 LOGISTA_NO_COLORS            Disable colored output (set to "true")
-LOGISTA_TABLE_KEY_PADDING    Padding length for keys in table output
 ```
 
 ### Configuration File
@@ -210,9 +208,6 @@ date_format: "15:04:05"
 
 # Disable colors
 no_colors: false
-
-# Padding length for keys in table output
-table_key_padding: 20
 
 # Enable simple {field} syntax in templates
 enable_simple_syntax: true

@@ -517,12 +517,11 @@ func TestTableFunc(t *testing.T) {
 		},
 		{
 			name:   "table with custom key padding",
-			format: "{{. | table}}",
+			format: "{{. | table 10}}",
 			data: map[string]interface{}{
 				"level":   "info",
 				"message": "Application started",
 			},
-			keyPadding: 10,
 		},
 		{
 			name:   "table with no colors",
@@ -573,9 +572,7 @@ func TestTableFunc(t *testing.T) {
 				opts = append(opts, WithNoColors(true))
 			}
 			// Filtering is now done in the template with the filter function
-			if tt.keyPadding != 0 {
-				opts = append(opts, WithTableKeyPadding(tt.keyPadding))
-			}
+			// Padding is now a parameter to the table function
 			
 			formatter, err := NewTemplateFormatter(tt.format, opts...)
 			if err != nil {

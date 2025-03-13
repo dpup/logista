@@ -23,7 +23,6 @@ type TemplateFormatter struct {
 	template         *template.Template
 	preferredDateFmt string
 	noColors         bool
-	tableKeyPadding  int
 }
 
 // FormatterOption is a functional option for configuring the formatter
@@ -45,12 +44,7 @@ func WithNoColors(noColors bool) FormatterOption {
 
 // No longer needed as the filter function can be used directly in templates
 
-// WithTableKeyPadding sets the padding length for keys in table output
-func WithTableKeyPadding(padding int) FormatterOption {
-	return func(tf *TemplateFormatter) {
-		tf.tableKeyPadding = padding
-	}
-}
+// (WithTableKeyPadding removed - padding is now a parameter to the table function)
 
 // NewTemplateFormatterWithOptions creates a new TemplateFormatter with the given format string and preprocessing options
 func NewTemplateFormatterWithOptions(format string, preprocessOptions PreProcessTemplateOptions, opts ...FormatterOption) (*TemplateFormatter, error) {
@@ -60,12 +54,26 @@ func NewTemplateFormatterWithOptions(format string, preprocessOptions PreProcess
 	// Create the formatter with default values
 	formatter := &TemplateFormatter{
 		preferredDateFmt: "2006-01-02 15:04:05",
-		tableKeyPadding:  19,
 	}
 
 	// Apply options
 	for _, opt := range opts {
 		opt(formatter)
+	}
+
+	// Create wrapper for table function to ensure backward compatibility
+	tableWrapper := func(args ...interface{}) string {
+		if len(args) == 0 {
+			return ""
+		} else if len(args) == 1 {
+			return formatter.tableFunc(nil, args[0])
+		} else {
+			// Last argument is the data
+			data := args[len(args)-1]
+			// First argument is the padding
+			padding := args[0]
+			return formatter.tableFunc(padding, data)
+		}
 	}
 
 	// Create template with custom functions
@@ -74,7 +82,7 @@ func NewTemplateFormatterWithOptions(format string, preprocessOptions PreProcess
 		"date":     formatter.dateFunc,
 		"pad":      formatter.padFunc,
 		"pretty":   formatter.prettyFunc,
-		"table":    formatter.tableFunc,
+		"table":    tableWrapper,
 		"duration": formatter.durationFunc,
 		"wrap":     formatter.wrapFunc,
 		"trunc":    formatter.truncFunc,
@@ -365,19 +373,44 @@ func (f *TemplateFormatter) prettyMap(m map[string]interface{}) string {
 // tableFunc formats a map as a table with each field on a new line
 // Format is "key: value" with keys right-padded and dimmed
 // Empty or nil values are omitted (use with filter function for field exclusion)
-func (f *TemplateFormatter) tableFunc(value interface{}) string {
+// An optional padding length can be specified for the keys, defaults to 19 if not provided
+func (f *TemplateFormatter) tableFunc(padding interface{}, value interface{}) string {
 	if value == nil {
 		return ""
 	}
+	
+	// Parse padding parameter (default to 19 if not specified or invalid)
+	keyPadding := 19
+	if padding != nil {
+		switch p := padding.(type) {
+		case int:
+			keyPadding = p
+		case string:
+			if val, err := strconv.Atoi(p); err == nil && val > 0 {
+				keyPadding = val
+			}
+		case float64:
+			keyPadding = int(p)
+		}
+	}
 
+	// Get the actual data (for backward compatibility)
+	var actualValue interface{}
+	if args, ok := value.([]interface{}); ok && len(args) > 0 {
+		// If multiple args were provided, the last one is the value
+		actualValue = args[len(args)-1]
+	} else {
+		actualValue = value
+	}
+	
 	// Convert to map if possible
 	var dataMap map[string]interface{}
-	switch v := value.(type) {
+	switch v := actualValue.(type) {
 	case map[string]interface{}:
 		dataMap = v
 	default:
 		// For non-map types, return as is using pretty formatting
-		return f.prettyFunc(value)
+		return f.prettyFunc(actualValue)
 	}
 
 	if len(dataMap) == 0 {
@@ -413,7 +446,7 @@ func (f *TemplateFormatter) tableFunc(value interface{}) string {
 		}
 
 		// Format the key with padding and dim effect
-		paddedKey := f.padFunc(f.tableKeyPadding, key)
+		paddedKey := f.padFunc(keyPadding, key)
 		if f.noColors {
 			builder.WriteString(fmt.Sprintf("  %s", paddedKey))
 		} else {
