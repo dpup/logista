@@ -14,7 +14,13 @@ Example:
 ## Installation
 
 ```
-go install github.com/dpup/logista/cmd/logista@latest
+go install github.com/dpup/logista@latest
+```
+
+You can also use it as a tool in your project's go.mod file:
+
+```
+tool github.com/dpup/logista
 ```
 
 ## Usage
@@ -235,6 +241,14 @@ make build
 ```
 
 The binary will be created in the `dist` directory.
+
+You can also install directly from source:
+
+```
+git clone https://github.com/dpup/logista.git
+cd logista
+make install
+```
 
 ## License
 

@@ -3,7 +3,7 @@
 # Variables
 BINARY_NAME=logista
 DIST_DIR=dist
-MAIN_PACKAGE=./cmd/logista
+MAIN_PACKAGE=.
 VERSION=$(shell git describe --tags --always 2>/dev/null || echo "dev")
 BUILD_FLAGS=-ldflags "-X main.version=${VERSION}"
 GOPATH=$(shell go env GOPATH)
@@ -57,7 +57,7 @@ fmt-check:
 
 # Install the binary
 install:
-	go install ${BUILD_FLAGS} ${MAIN_PACKAGE}
+	go install ${BUILD_FLAGS}
 
 # Create a new release
 release:

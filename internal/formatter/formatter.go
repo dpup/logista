@@ -378,7 +378,7 @@ func (f *TemplateFormatter) tableFunc(padding interface{}, value interface{}) st
 	if value == nil {
 		return ""
 	}
-	
+
 	// Parse padding parameter (default to 19 if not specified or invalid)
 	keyPadding := 19
 	if padding != nil {
@@ -402,7 +402,7 @@ func (f *TemplateFormatter) tableFunc(padding interface{}, value interface{}) st
 	} else {
 		actualValue = value
 	}
-	
+
 	// Convert to map if possible
 	var dataMap map[string]interface{}
 	switch v := actualValue.(type) {

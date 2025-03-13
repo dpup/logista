@@ -427,13 +427,13 @@ func TestTemplateFieldFiltering(t *testing.T) {
 
 func TestTableFunc(t *testing.T) {
 	tests := []struct {
-		name             string
-		format           string
-		data             map[string]interface{}
-		contains         []string
-		notContains      []string
-		noColors         bool
-		keyPadding       int
+		name        string
+		format      string
+		data        map[string]interface{}
+		contains    []string
+		notContains []string
+		noColors    bool
+		keyPadding  int
 	}{
 		{
 			name:   "basic table",
@@ -549,7 +549,7 @@ func TestTableFunc(t *testing.T) {
 				"level",
 				"message",
 				"context",
-				"{",  // Just check for basic structure elements, not the exact format
+				"{", // Just check for basic structure elements, not the exact format
 				"user",
 				"id",
 				"123",
@@ -558,9 +558,9 @@ func TestTableFunc(t *testing.T) {
 			},
 		},
 		{
-			name:   "empty table",
-			format: "{{.empty | table}}",
-			data:   map[string]interface{}{"empty": map[string]interface{}{}},
+			name:     "empty table",
+			format:   "{{.empty | table}}",
+			data:     map[string]interface{}{"empty": map[string]interface{}{}},
 			contains: []string{""},
 		},
 	}
@@ -573,7 +573,7 @@ func TestTableFunc(t *testing.T) {
 			}
 			// Filtering is now done in the template with the filter function
 			// Padding is now a parameter to the table function
-			
+
 			formatter, err := NewTemplateFormatter(tt.format, opts...)
 			if err != nil {
 				t.Fatalf("Failed to create formatter: %v", err)
@@ -642,7 +642,7 @@ func TestDurationFunc(t *testing.T) {
 			name:     "duration with very small value",
 			format:   "{{.duration | duration}}",
 			data:     map[string]interface{}{"duration": 0.75},
-			expected: "750.00µs",  // 0.75ms == 750µs
+			expected: "750.00µs", // 0.75ms == 750µs
 		},
 		{
 			name:     "duration with json.Number",
@@ -801,53 +801,53 @@ func TestWrapFunc(t *testing.T) {
 
 func TestPrettyFunc(t *testing.T) {
 	tests := []struct {
-		name      string
-		format    string
-		data      map[string]interface{}
-		contains  []string
+		name        string
+		format      string
+		data        map[string]interface{}
+		contains    []string
 		notContains []string
-		noColors  bool
+		noColors    bool
 	}{
 		{
-			name:   "pretty basic string",
-			format: "{{.message | pretty}}",
-			data:   map[string]interface{}{"message": "hello world"},
+			name:     "pretty basic string",
+			format:   "{{.message | pretty}}",
+			data:     map[string]interface{}{"message": "hello world"},
 			contains: []string{"hello world"},
 		},
 		{
-			name:   "pretty basic number",
-			format: "{{.count | pretty}}",
-			data:   map[string]interface{}{"count": 42},
+			name:     "pretty basic number",
+			format:   "{{.count | pretty}}",
+			data:     map[string]interface{}{"count": 42},
 			contains: []string{"42"},
 		},
 		{
-			name:   "pretty duration nanoseconds",
-			format: "{{.duration | pretty}}",
-			data:   map[string]interface{}{"duration": 750 * time.Nanosecond},
+			name:     "pretty duration nanoseconds",
+			format:   "{{.duration | pretty}}",
+			data:     map[string]interface{}{"duration": 750 * time.Nanosecond},
 			contains: []string{"750ns"},
 		},
 		{
-			name:   "pretty duration microseconds",
-			format: "{{.duration | pretty}}",
-			data:   map[string]interface{}{"duration": 750 * time.Microsecond},
+			name:     "pretty duration microseconds",
+			format:   "{{.duration | pretty}}",
+			data:     map[string]interface{}{"duration": 750 * time.Microsecond},
 			contains: []string{"750.00µs"},
 		},
 		{
-			name:   "pretty duration milliseconds",
-			format: "{{.duration | pretty}}",
-			data:   map[string]interface{}{"duration": 750 * time.Millisecond},
+			name:     "pretty duration milliseconds",
+			format:   "{{.duration | pretty}}",
+			data:     map[string]interface{}{"duration": 750 * time.Millisecond},
 			contains: []string{"750.00ms"},
 		},
 		{
-			name:   "pretty duration seconds",
-			format: "{{.duration | pretty}}",
-			data:   map[string]interface{}{"duration": 7500 * time.Millisecond},
+			name:     "pretty duration seconds",
+			format:   "{{.duration | pretty}}",
+			data:     map[string]interface{}{"duration": 7500 * time.Millisecond},
 			contains: []string{"7.50s"},
 		},
 		{
-			name:   "pretty duration minutes",
-			format: "{{.duration | pretty}}",
-			data:   map[string]interface{}{"duration": 90 * time.Second},
+			name:     "pretty duration minutes",
+			format:   "{{.duration | pretty}}",
+			data:     map[string]interface{}{"duration": 90 * time.Second},
 			contains: []string{"1m30s"},
 		},
 		{
@@ -880,7 +880,7 @@ func TestPrettyFunc(t *testing.T) {
 			data: map[string]interface{}{
 				"context": map[string]interface{}{
 					"user": map[string]interface{}{
-						"id":   "user123",
+						"id": "user123",
 					},
 					"request_id": "req-456",
 				},
@@ -935,11 +935,11 @@ func TestPrettyFunc(t *testing.T) {
 				"{",
 				"users=",
 				"metadata=",
-				
+
 				// Array structure
 				"[",
 				", ",
-				
+
 				// Content checks
 				"id=", "u1",
 				"role=", "admin",
@@ -949,27 +949,27 @@ func TestPrettyFunc(t *testing.T) {
 			},
 		},
 		{
-			name:   "pretty nil value",
-			format: "{{.missing | pretty}}",
-			data:   map[string]interface{}{},
+			name:     "pretty nil value",
+			format:   "{{.missing | pretty}}",
+			data:     map[string]interface{}{},
 			contains: []string{"<nil>"},
 		},
 		{
-			name:   "pretty empty string",
-			format: "{{.empty | pretty}}",
-			data:   map[string]interface{}{"empty": ""},
+			name:     "pretty empty string",
+			format:   "{{.empty | pretty}}",
+			data:     map[string]interface{}{"empty": ""},
 			contains: []string{"<empty>"},
 		},
 		{
-			name:   "pretty empty map",
-			format: "{{.empty | pretty}}",
-			data:   map[string]interface{}{"empty": map[string]interface{}{}},
+			name:     "pretty empty map",
+			format:   "{{.empty | pretty}}",
+			data:     map[string]interface{}{"empty": map[string]interface{}{}},
 			contains: []string{"{}"},
 		},
 		{
-			name:   "pretty empty array",
-			format: "{{.empty | pretty}}",
-			data:   map[string]interface{}{"empty": []interface{}{}},
+			name:     "pretty empty array",
+			format:   "{{.empty | pretty}}",
+			data:     map[string]interface{}{"empty": []interface{}{}},
 			contains: []string{"[]"},
 		},
 	}
@@ -980,7 +980,7 @@ func TestPrettyFunc(t *testing.T) {
 			if tt.noColors {
 				opts = append(opts, WithNoColors(true))
 			}
-			
+
 			formatter, err := NewTemplateFormatter(tt.format, opts...)
 			if err != nil {
 				t.Fatalf("Failed to create formatter: %v", err)
