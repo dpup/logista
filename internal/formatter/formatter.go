@@ -726,7 +726,8 @@ func (f *TemplateFormatter) Format(data map[string]interface{}) (string, error) 
 }
 
 // ProcessStream processes JSON logs from a reader and writes formatted output to a writer
-func (f *TemplateFormatter) ProcessStream(r io.Reader, w io.Writer, formatter Formatter) error {
+// skipPatterns is a slice of patterns to match for skipping log records
+func (f *TemplateFormatter) ProcessStream(r io.Reader, w io.Writer, formatter Formatter, skipPatterns []SkipPattern) error {
 	decoder := json.NewDecoder(r)
 	decoder.UseNumber() // Use json.Number for numeric values to preserve precision
 
@@ -737,6 +738,11 @@ func (f *TemplateFormatter) ProcessStream(r io.Reader, w io.Writer, formatter Fo
 				break
 			}
 			return err
+		}
+
+		// Skip record if it matches any pattern
+		if shouldSkip(data, skipPatterns) {
+			continue
 		}
 
 		formatted, err := formatter.Format(data)
@@ -750,4 +756,30 @@ func (f *TemplateFormatter) ProcessStream(r io.Reader, w io.Writer, formatter Fo
 	}
 
 	return nil
+}
+
+// SkipPattern represents a field and value to match for skipping log records
+type SkipPattern struct {
+	Field string
+	Value string
+}
+
+// shouldSkip checks if a log record should be skipped based on the skip patterns
+func shouldSkip(data map[string]interface{}, skipPatterns []SkipPattern) bool {
+	if len(skipPatterns) == 0 {
+		return false
+	}
+
+	// Check each skip pattern against the data
+	for _, pattern := range skipPatterns {
+		if actualValue, ok := data[pattern.Field]; ok {
+			// Convert the actual value to string for comparison
+			actualValueStr := fmt.Sprintf("%v", actualValue)
+			if actualValueStr == pattern.Value {
+				return true
+			}
+		}
+	}
+
+	return false
 }

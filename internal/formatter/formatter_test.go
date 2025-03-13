@@ -242,13 +242,85 @@ func TestProcessStream(t *testing.T) {
 	r := strings.NewReader(input)
 	var buf bytes.Buffer
 
-	err = formatter.ProcessStream(r, &buf, formatter)
+	err = formatter.ProcessStream(r, &buf, formatter, nil)
 	if err != nil {
 		t.Fatalf("ProcessStream failed: %v", err)
 	}
 
 	if buf.String() != expected {
 		t.Errorf("Expected '%s', got '%s'", expected, buf.String())
+	}
+}
+
+func TestProcessStreamWithSkip(t *testing.T) {
+	tests := []struct {
+		name         string
+		input        string
+		skipPatterns []SkipPattern
+		expected     string
+		format       string
+	}{
+		{
+			name:         "skip by level",
+			input:        `{"level":"info","message":"test1"}` + "\n" + `{"level":"error","message":"test2"}`,
+			skipPatterns: []SkipPattern{{Field: "level", Value: "error"}},
+			expected:     "info test1\n",
+			format:       "{{.level}} {{.message}}",
+		},
+		{
+			name:         "skip by message",
+			input:        `{"level":"info","message":"test1"}` + "\n" + `{"level":"error","message":"test2"}`,
+			skipPatterns: []SkipPattern{{Field: "message", Value: "test1"}},
+			expected:     "error test2\n",
+			format:       "{{.level}} {{.message}}",
+		},
+		{
+			name: "skip by multiple patterns",
+			input: `{"level":"info","logger":"Service.method1","message":"test1"}` + "\n" + 
+			       `{"level":"error","logger":"Service.method2","message":"test2"}` + "\n" + 
+			       `{"level":"debug","logger":"Uploader.download","message":"test3"}`,
+			skipPatterns: []SkipPattern{
+				{Field: "level", Value: "error"},
+				{Field: "logger", Value: "Uploader.download"},
+			},
+			expected: "info Service.method1 test1\n",
+			format:   "{{.level}} {{.logger}} {{.message}}",
+		},
+		{
+			name:         "no matches to skip",
+			input:        `{"level":"info","message":"test1"}` + "\n" + `{"level":"error","message":"test2"}`,
+			skipPatterns: []SkipPattern{{Field: "level", Value: "warn"}},
+			expected:     "info test1\nerror test2\n",
+			format:       "{{.level}} {{.message}}",
+		},
+		{
+			name:         "empty skip patterns",
+			input:        `{"level":"info","message":"test1"}` + "\n" + `{"level":"error","message":"test2"}`,
+			skipPatterns: []SkipPattern{},
+			expected:     "info test1\nerror test2\n",
+			format:       "{{.level}} {{.message}}",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			formatter, err := NewTemplateFormatter(tt.format)
+			if err != nil {
+				t.Fatalf("Failed to create formatter: %v", err)
+			}
+
+			r := strings.NewReader(tt.input)
+			var buf bytes.Buffer
+
+			err = formatter.ProcessStream(r, &buf, formatter, tt.skipPatterns)
+			if err != nil {
+				t.Fatalf("ProcessStream failed: %v", err)
+			}
+
+			if buf.String() != tt.expected {
+				t.Errorf("Expected '%s', got '%s'", tt.expected, buf.String())
+			}
+		})
 	}
 }
 

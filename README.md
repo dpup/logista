@@ -63,6 +63,11 @@ my-server | logista --fmt="{{.timestamp | date}} [{{.level}}] {{.message}} {{.co
 # Disable colors
 my-server | logista --fmt="{{.level | color \"red\"}} {{.message}}" --no-colors
 
+# Skip log records by field value
+my-server | logista --skip level=debug --skip level=trace        # Skip debug and trace logs
+my-server | logista --skip logger=Uploader.download              # Skip logs from specific component
+my-server | logista --skip level=error --skip logger=Worker      # Skip multiple patterns
+
 # Help
 logista --help
 ```
@@ -189,6 +194,7 @@ Logista supports configuration via command-line flags, environment variables, an
 --enable_simple_syntax       Enable simple {field} syntax in templates (default true)
 --format string              Format template (default "{{.timestamp | date}} {{.level}} {{.message}}")
 --no_colors                  Disable colored output
+--skip stringSlice           Skip log records matching key=value pairs (can be specified multiple times)
 ```
 
 ### Environment Variables
@@ -201,6 +207,7 @@ LOGISTA_DATE_FORMAT          Preferred date format for the date function
 LOGISTA_ENABLE_SIMPLE_SYNTAX Enable simple {field} syntax in templates
 LOGISTA_FORMAT               Format template
 LOGISTA_NO_COLORS            Disable colored output (set to "true")
+LOGISTA_SKIP                 Skip log records matching key=value pairs (comma-separated list)
 ```
 
 ### Configuration File
@@ -221,6 +228,11 @@ no_colors: false
 
 # Enable simple {field} syntax in templates
 enable_simple_syntax: true
+
+# Skip log records matching key=value pairs
+skip:
+  - level=error
+  - logger=Uploader.download
 ```
 
 ### Configuration Precedence

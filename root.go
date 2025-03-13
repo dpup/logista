@@ -24,6 +24,7 @@ const (
 	keyNoColors     = "no_colors"
 	keyConfig       = "config"
 	keyEnableSimple = "enable_simple_syntax"
+	keySkip         = "skip"
 )
 
 // Initialize cobra command
@@ -49,6 +50,7 @@ func init() { //nolint:gochecknoinits // Required for cobra command initializati
 	rootCmd.PersistentFlags().String(keyDateFormat, "2006-01-02 15:04:05", "Preferred date format for the date function")
 	rootCmd.PersistentFlags().Bool(keyNoColors, false, "Disable colored output")
 	rootCmd.PersistentFlags().Bool(keyEnableSimple, true, "Enable simple {field} syntax in templates")
+	rootCmd.PersistentFlags().StringSlice(keySkip, []string{}, "Skip log records matching key=value pairs (e.g. --skip logger=Uploader.download)")
 
 	// Bind flags to viper
 	if err := viper.BindPFlag(keyFormat, rootCmd.PersistentFlags().Lookup(keyFormat)); err != nil {
@@ -62,6 +64,9 @@ func init() { //nolint:gochecknoinits // Required for cobra command initializati
 	}
 	if err := viper.BindPFlag(keyEnableSimple, rootCmd.PersistentFlags().Lookup(keyEnableSimple)); err != nil {
 		fmt.Fprintf(os.Stderr, "Error binding flag %s: %v\n", keyEnableSimple, err)
+	}
+	if err := viper.BindPFlag(keySkip, rootCmd.PersistentFlags().Lookup(keySkip)); err != nil {
+		fmt.Fprintf(os.Stderr, "Error binding flag %s: %v\n", keySkip, err)
 	}
 
 	// Set environment variable prefix
@@ -121,7 +126,23 @@ func runLogista(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("invalid format template: %w", err)
 	}
 
-	return tmplFormatter.ProcessStream(os.Stdin, os.Stdout, tmplFormatter)
+	// Process skip patterns
+	skipFlags := viper.GetStringSlice(keySkip)
+	var skipPatterns []formatter.SkipPattern
+	
+	for _, skipFlag := range skipFlags {
+		parts := strings.SplitN(skipFlag, "=", 2)
+		if len(parts) == 2 {
+			skipPatterns = append(skipPatterns, formatter.SkipPattern{
+				Field: parts[0],
+				Value: parts[1],
+			})
+		} else {
+			fmt.Fprintf(os.Stderr, "Warning: invalid skip pattern format (expected key=value): %s\n", skipFlag)
+		}
+	}
+
+	return tmplFormatter.ProcessStream(os.Stdin, os.Stdout, tmplFormatter, skipPatterns)
 }
 
 // Execute runs the root command
