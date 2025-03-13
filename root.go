@@ -50,7 +50,7 @@ func init() { //nolint:gochecknoinits // Required for cobra command initializati
 	rootCmd.PersistentFlags().String(keyDateFormat, "2006-01-02 15:04:05", "Preferred date format for the date function")
 	rootCmd.PersistentFlags().Bool(keyNoColors, false, "Disable colored output")
 	rootCmd.PersistentFlags().Bool(keyEnableSimple, true, "Enable simple {field} syntax in templates")
-	rootCmd.PersistentFlags().StringSlice(keySkip, []string{}, "Skip log records matching key=value pairs (e.g. --skip logger=Uploader.download)")
+	rootCmd.PersistentFlags().StringSlice(keySkip, []string{}, "Skip log records matching key=value pairs (e.g. --skip logger=Uploader.download). Values are matched as substrings, so 'msg=upload: Downloading' will match records containing that text.")
 
 	// Bind flags to viper
 	if err := viper.BindPFlag(keyFormat, rootCmd.PersistentFlags().Lookup(keyFormat)); err != nil {

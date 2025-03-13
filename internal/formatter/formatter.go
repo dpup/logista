@@ -781,7 +781,16 @@ func shouldSkip(data map[string]interface{}, skipPatterns []SkipPattern) bool {
 		if actualValue, ok := data[pattern.Field]; ok {
 			// Convert the actual value to string for comparison
 			actualValueStr := fmt.Sprintf("%v", actualValue)
+
+			// Check if the pattern value is an exact match
 			if actualValueStr == pattern.Value {
+				return true
+			}
+
+			// Check if the pattern value is contained within the actual value
+			// This allows for partial matches like "auth.action=upload.download" matching "auth.action=upload.download.complete"
+			// or "msg=upload: Downloading" matching a message that contains this text
+			if strings.Contains(actualValueStr, pattern.Value) {
 				return true
 			}
 		}

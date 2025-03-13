@@ -300,6 +300,23 @@ func TestProcessStreamWithSkip(t *testing.T) {
 			expected:     "info test1\nerror test2\n",
 			format:       "{{.level}} {{.message}}",
 		},
+		{
+			name: "skip with partial value match",
+			input: `{"level":"info","auth.action":"upload.download.complete","message":"Downloading file"}` + "\n" +
+				`{"level":"info","auth.action":"list","message":"Listing files"}`,
+			skipPatterns: []SkipPattern{{Field: "auth.action", Value: "upload.download"}},
+			expected:     "info list Listing files\n",
+			format:       "{{.level}} {{index . \"auth.action\"}} {{.message}}",
+		},
+		{
+			name: "skip with msg containing specific text",
+			input: `{"level":"info","msg":"upload: Downloading file from server","source":"uploader"}` + "\n" +
+				`{"level":"info","msg":"upload: Completed","source":"uploader"}` + "\n" +
+				`{"level":"error","msg":"Failed to connect","source":"network"}`,
+			skipPatterns: []SkipPattern{{Field: "msg", Value: "upload: Downloading"}},
+			expected:     "info upload: Completed uploader\nerror Failed to connect network\n",
+			format:       "{{.level}} {{.msg}} {{.source}}",
+		},
 	}
 
 	for _, tt := range tests {
