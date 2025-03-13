@@ -29,7 +29,7 @@ fi
 # Test with custom format (no date formatting) - simplified syntax
 echo ""
 echo "=== Testing custom format with simplified syntax ==="
-CUSTOM_OUTPUT=$(cat "$TEST_DATA" | "$BINARY" --fmt="{timestamp} [{level}] {message}")
+CUSTOM_OUTPUT=$(cat "$TEST_DATA" | "$BINARY" --format="{timestamp} [{level}] {message}")
 echo "$CUSTOM_OUTPUT"
 
 # Check for expected output with custom format
@@ -45,7 +45,7 @@ fi
 # Test with custom format (no date formatting) - Go template syntax
 echo ""
 echo "=== Testing custom format with Go template syntax ==="
-CUSTOM_OUTPUT2=$(cat "$TEST_DATA" | "$BINARY" --fmt="{{.timestamp}} [{{.level}}] {{.message}}")
+CUSTOM_OUTPUT2=$(cat "$TEST_DATA" | "$BINARY" --format="{{.timestamp}} [{{.level}}] {{.message}}")
 echo "$CUSTOM_OUTPUT2"
 
 # Check for expected output with custom format
@@ -61,7 +61,7 @@ fi
 # Test with date function - simplified syntax
 echo ""
 echo "=== Testing date function with simplified syntax ==="
-DATE_OUTPUT=$(cat "$TEST_DATA" | "$BINARY" --fmt="{timestamp | date} [{level}] {message}")
+DATE_OUTPUT=$(cat "$TEST_DATA" | "$BINARY" --format="{timestamp | date} [{level}] {message}")
 echo "$DATE_OUTPUT"
 
 # Check for expected output with date function
@@ -78,7 +78,7 @@ fi
 # Test with custom date format - simplified syntax
 echo ""
 echo "=== Testing custom date format with simplified syntax ==="
-CUSTOM_DATE_OUTPUT=$(cat "$TEST_DATA" | "$BINARY" --fmt="{timestamp | date} [{level}] {message}" --preferred_date_format="02/01/2006 15:04")
+CUSTOM_DATE_OUTPUT=$(cat "$TEST_DATA" | "$BINARY" --format="{timestamp | date} [{level}] {message}" --date_format="02/01/2006 15:04")
 echo "$CUSTOM_DATE_OUTPUT"
 
 # Check for expected output with custom date format
@@ -94,7 +94,7 @@ fi
 # Test with new color functions syntax
 echo ""
 echo "=== Testing new color functions syntax ==="
-COLOR_OUTPUT=$(cat "$TEST_DATA" | "$BINARY" --fmt="{timestamp | date | color \"cyan\"} [{level}] {message | bold}")
+COLOR_OUTPUT=$(cat "$TEST_DATA" | "$BINARY" --format="{timestamp | date | color \"cyan\"} [{level}] {message | bold}")
 echo "$COLOR_OUTPUT"
 
 # For color tests, we just verify that the command ran without error
@@ -109,7 +109,7 @@ fi
 # Test with --no-colors flag
 echo ""
 echo "=== Testing --no-colors flag ==="
-NO_COLOR_OUTPUT=$(cat "$TEST_DATA" | "$BINARY" --fmt="{timestamp | date | color \"cyan\"} [{level}] {message | bold}" --no-colors)
+NO_COLOR_OUTPUT=$(cat "$TEST_DATA" | "$BINARY" --format="{timestamp | date | color \"cyan\"} [{level}] {message | bold}" --no_colors)
 echo "$NO_COLOR_OUTPUT"
 
 # For no-colors test, we verify that the command ran without error
@@ -124,7 +124,7 @@ fi
 # Test with advanced template features
 echo ""
 echo "=== Testing advanced template features ==="
-ADVANCED_OUTPUT=$(cat "$TEST_DATA" | "$BINARY" --fmt="{{.timestamp | date}} [{{.level}}] {{.message}}{{if .context}} (Context: {{.context.version}}){{end}}")
+ADVANCED_OUTPUT=$(cat "$TEST_DATA" | "$BINARY" --format="{{.timestamp | date}} [{{.level}}] {{.message}}{{if .context}} (Context: {{.context.version}}){{end}}")
 echo "$ADVANCED_OUTPUT"
 
 # For advanced features test, verify the command ran and expected output is present
@@ -138,7 +138,7 @@ fi
 # Test with at-symbol syntax
 echo ""
 echo "=== Testing at-symbol syntax ==="
-AT_SYMBOL_OUTPUT=$(cat "$TEST_DATA" | "$BINARY" --fmt="{{@level}}: {{@message}} (timestamp: {{@timestamp}})")
+AT_SYMBOL_OUTPUT=$(cat "$TEST_DATA" | "$BINARY" --format="{{@level}}: {{@message}} (timestamp: {{@timestamp}})")
 echo "$AT_SYMBOL_OUTPUT"
 
 # For at-symbol syntax test, verify the command ran and expected output is present

@@ -52,10 +52,10 @@ func WithTableKeyPadding(padding int) FormatterOption {
 	}
 }
 
-// NewTemplateFormatter creates a new TemplateFormatter with the given format string
-func NewTemplateFormatter(format string, opts ...FormatterOption) (*TemplateFormatter, error) {
+// NewTemplateFormatterWithOptions creates a new TemplateFormatter with the given format string and preprocessing options
+func NewTemplateFormatterWithOptions(format string, preprocessOptions PreProcessTemplateOptions, opts ...FormatterOption) (*TemplateFormatter, error) {
 	// Process template with shortcuts via the preprocessor
-	format = PreProcessTemplate(format, DefaultPreProcessTemplateOptions())
+	format = PreProcessTemplate(format, preprocessOptions)
 
 	// Create the formatter with default values
 	formatter := &TemplateFormatter{
@@ -99,6 +99,11 @@ func NewTemplateFormatter(format string, opts ...FormatterOption) (*TemplateForm
 
 	formatter.template = parsed
 	return formatter, nil
+}
+
+// NewTemplateFormatter creates a new TemplateFormatter with the given format string
+func NewTemplateFormatter(format string, opts ...FormatterOption) (*TemplateFormatter, error) {
+	return NewTemplateFormatterWithOptions(format, DefaultPreProcessTemplateOptions(), opts...)
 }
 
 // padFunc is a template function that pads a string to a specified length

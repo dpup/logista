@@ -39,7 +39,7 @@ my-server | logista --fmt="{@user.name} (ID: {@request-id})"
 my-server | logista --fmt="{{.timestamp}} [{{.level}}] {{.message}}"
 
 # Custom date format
-my-server | logista --fmt="{timestamp | date} [{level}] {message}" --preferred_date_format="15:04:05"
+my-server | logista --fmt="{timestamp | date} [{level}] {message}" --date_format="15:04:05"
 
 # With message colored by log level (colors error red, warning yellow, etc)
 my-server | logista --fmt="{timestamp | date} [{level}] {msg | colorByLevel .level}"
@@ -96,14 +96,14 @@ Or using full Go template syntax:
 
 ### Value Formatting Functions
 
-| Command    | Description                                                                                                                                                                                                                                                                                                                                                                                        | Example                      |
-| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
-| **date**   | Parses dates in various formats into a standardized format. Works with: ISO 8601 timestamps (`2024-03-10T15:04:05Z`), Unix timestamps (`1741626507`) (seconds since epoch), Unix timestamps with fractional seconds (`1741626507.9066188`), Common log formats (`10/Mar/2024:15:04:05 +0000`), and many others. Use `--preferred_date_format` to set the output format in Go's time format syntax. | `{timestamp \| date}`        |
-| **pad**    | Pads a string to a specified length.                                                                                                                                                                                                                                                                                                                                                               | `{level \| pad 10}`          |
-| **pretty** | Pretty-prints any value with proper formatting: maps as `{key=value, key=value}` with dim keys, arrays as `[value, value]` with dim commas, empty strings as `<empty>`, nil values as `<nil>`.                                                                                                                                                                                                     | `{context \| pretty}`        |
-| **table**  | Formats a map as a table with each field on a new line. Format is `key: value` with keys right-padded and dimmed. Empty values are omitted.                                                                                                                                                                                                                                                        | `{. \| table}`               |
-| **wrap**   | Wraps text to a specified width with optional indentation for wrapped lines. Takes two parameters: width (required) and indent (optional). If text exceeds the specified width, it will be wrapped to multiple lines.                                                                                                                                                                              | `{description \| wrap 80 2}` |
-| **trunc**  | Truncates text to a specified length. If the text exceeds the length, it adds an ellipsis (...). Takes one parameter: the maximum length of the text.                                                                                                                                                                                                                                              | `{message \| trunc 20}`      |
+| Command    | Description                                                                                                                                                                                                                                                                                                                                                                              | Example                      |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| **date**   | Parses dates in various formats into a standardized format. Works with: ISO 8601 timestamps (`2024-03-10T15:04:05Z`), Unix timestamps (`1741626507`) (seconds since epoch), Unix timestamps with fractional seconds (`1741626507.9066188`), Common log formats (`10/Mar/2024:15:04:05 +0000`), and many others. Use `--date_format` to set the output format in Go's time format syntax. | `{timestamp \| date}`        |
+| **pad**    | Pads a string to a specified length.                                                                                                                                                                                                                                                                                                                                                     | `{level \| pad 10}`          |
+| **pretty** | Pretty-prints any value with proper formatting: maps as `{key=value, key=value}` with dim keys, arrays as `[value, value]` with dim commas, empty strings as `<empty>`, nil values as `<nil>`.                                                                                                                                                                                           | `{context \| pretty}`        |
+| **table**  | Formats a map as a table with each field on a new line. Format is `key: value` with keys right-padded and dimmed. Empty values are omitted.                                                                                                                                                                                                                                              | `{. \| table}`               |
+| **wrap**   | Wraps text to a specified width with optional indentation for wrapped lines. Takes two parameters: width (required) and indent (optional). If text exceeds the specified width, it will be wrapped to multiple lines.                                                                                                                                                                    | `{description \| wrap 80 2}` |
+| **trunc**  | Truncates text to a specified length. If the text exceeds the length, it adds an ellipsis (...). Takes one parameter: the maximum length of the text.                                                                                                                                                                                                                                    | `{message \| trunc 20}`      |
 
 ### Color Functions
 
@@ -166,6 +166,66 @@ Here's a comprehensive example that clearly formats structured logs:
 {{end}}
 {filter . "level" "ts" "msg" "logger" "caller" "description" "grpc.*" | table}
 ```
+
+## Configuration
+
+Logista supports configuration via command-line flags, environment variables, and configuration files.
+
+### Command-line Flags
+
+```
+--config string              config file (default is $HOME/.logista.yaml)
+--date_format string         Preferred date format for the date function (default "2006-01-02 15:04:05")
+--enable_simple_syntax       Enable simple {field} syntax in templates (default true)
+--format string              Format template (default "{{.timestamp | date}} {{.level}} {{.message}}")
+--no_colors                  Disable colored output
+--table_key_padding int      Padding length for keys in table output (default 19)
+```
+
+### Environment Variables
+
+Environment variables are prefixed with `LOGISTA_` and use underscores instead of dashes:
+
+```
+LOGISTA_CONFIG               Path to config file
+LOGISTA_DATE_FORMAT          Preferred date format for the date function
+LOGISTA_ENABLE_SIMPLE_SYNTAX Enable simple {field} syntax in templates
+LOGISTA_FORMAT               Format template
+LOGISTA_NO_COLORS            Disable colored output (set to "true")
+LOGISTA_TABLE_KEY_PADDING    Padding length for keys in table output
+```
+
+### Configuration File
+
+By default, Logista looks for a configuration file named `.logista.yaml` in your home directory or the current directory. You can specify a custom configuration file with the `--config` flag.
+
+Example configuration file (`~/.logista.yaml`):
+
+```yaml
+# Format template
+format: "{timestamp | date} [{level}] {message}"
+
+# Preferred date format for the date function
+date_format: "15:04:05"
+
+# Disable colors
+no_colors: false
+
+# Padding length for keys in table output
+table_key_padding: 20
+
+# Enable simple {field} syntax in templates
+enable_simple_syntax: true
+```
+
+### Configuration Precedence
+
+Logista follows this order of precedence for configuration values (highest to lowest):
+
+1. Command-line flags
+2. Environment variables
+3. Configuration file
+4. Default values
 
 ## Building from Source
 
