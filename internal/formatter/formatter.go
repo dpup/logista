@@ -1,7 +1,9 @@
 package formatter
 
 import (
+	"bufio"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"reflect"
@@ -733,22 +735,64 @@ func (f *TemplateFormatter) Format(data map[string]interface{}) (string, error) 
 
 // ProcessStream processes JSON logs from a reader and writes formatted output to a writer
 // skipPatterns is a slice of patterns to match for skipping log records
-func (f *TemplateFormatter) ProcessStream(r io.Reader, w io.Writer, formatter Formatter, skipPatterns []SkipPattern) error {
-	decoder := json.NewDecoder(r)
-	decoder.UseNumber() // Use json.Number for numeric values to preserve precision
+// handleNonJSON controls how to handle non-JSON data in the stream
+func (f *TemplateFormatter) ProcessStream(r io.Reader, w io.Writer, formatter Formatter, skipPatterns []SkipPattern, handleNonJSON bool) error {
+	// Buffer for reading lines
+	scanner := bufio.NewScanner(r)
 
-	for {
+	inNonJSON := false
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		if line == "" {
+			continue
+		}
+
+		// Try to parse as JSON
 		var data map[string]interface{}
-		if err := decoder.Decode(&data); err != nil {
-			if err == io.EOF {
-				break
+		if err := json.Unmarshal([]byte(line), &data); err != nil {
+			// Handle non-JSON data
+			if handleNonJSON {
+				// Use a fixed format for non-JSON data with red prefix (if colors are enabled)
+				var prefix string
+				if f.noColors {
+					prefix = ">>> "
+				} else {
+					prefix = "\033[31m>>>\033[0m "
+				}
+				formatted := prefix + line
+
+				// Add an extra linebreak before blocks of non-JSON data.
+				if !inNonJSON {
+					inNonJSON = true
+					if _, err := io.WriteString(w, "\n"); err != nil {
+						return err
+					}
+				}
+
+				if _, err := io.WriteString(w, formatted+"\n"); err != nil {
+					return err
+				}
+
+				// Continue processing
+				continue
 			}
-			return err
+
+			// If not handling non-JSON data, return the error
+			return errors.Join(err, fmt.Errorf("invalid JSON: %s", line))
 		}
 
 		// Skip record if it matches any pattern
 		if shouldSkip(data, skipPatterns) {
 			continue
+		}
+
+		// Finalize a non-JSON block if we were in one.
+		if inNonJSON {
+			inNonJSON = false
+			if _, err := io.WriteString(w, "\n"); err != nil {
+				return err
+			}
 		}
 
 		formatted, err := formatter.Format(data)
@@ -759,6 +803,11 @@ func (f *TemplateFormatter) ProcessStream(r io.Reader, w io.Writer, formatter Fo
 		if _, err := io.WriteString(w, formatted+"\n"); err != nil {
 			return err
 		}
+	}
+
+	// Check for scanner errors
+	if err := scanner.Err(); err != nil {
+		return err
 	}
 
 	return nil

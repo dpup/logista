@@ -1,0 +1,4 @@
+{"level":"info","message":"This is valid JSON"}
+This is not JSON
+This is also not JSON
+{"level":"error","message":"Another valid JSON"}

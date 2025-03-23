@@ -19,12 +19,13 @@ const defaultFormat = "{{.timestamp | date}} {{.level}} {{.message}}"
 
 // Config options
 const (
-	keyFormat       = "format"
-	keyDateFormat   = "date_format"
-	keyNoColors     = "no_colors"
-	keyConfig       = "config"
-	keyEnableSimple = "enable_simple_syntax"
-	keySkip         = "skip"
+	keyFormat        = "format"
+	keyDateFormat    = "date_format"
+	keyNoColors      = "no_colors"
+	keyConfig        = "config"
+	keyEnableSimple  = "enable_simple_syntax"
+	keySkip          = "skip"
+	keyHandleNonJSON = "handle_non_json"
 )
 
 // Initialize cobra command
@@ -51,6 +52,7 @@ func init() { //nolint:gochecknoinits // Required for cobra command initializati
 	rootCmd.PersistentFlags().Bool(keyNoColors, false, "Disable colored output")
 	rootCmd.PersistentFlags().Bool(keyEnableSimple, true, "Enable simple {field} syntax in templates")
 	rootCmd.PersistentFlags().StringSlice(keySkip, []string{}, "Skip log records matching key=value pairs (e.g. --skip logger=Uploader.download). Values are matched as substrings, so 'msg=upload: Downloading' will match records containing that text.")
+	rootCmd.PersistentFlags().Bool(keyHandleNonJSON, false, "Gracefully handle non-JSON data in the input stream")
 
 	// Bind flags to viper
 	if err := viper.BindPFlag(keyFormat, rootCmd.PersistentFlags().Lookup(keyFormat)); err != nil {
@@ -67,6 +69,9 @@ func init() { //nolint:gochecknoinits // Required for cobra command initializati
 	}
 	if err := viper.BindPFlag(keySkip, rootCmd.PersistentFlags().Lookup(keySkip)); err != nil {
 		fmt.Fprintf(os.Stderr, "Error binding flag %s: %v\n", keySkip, err)
+	}
+	if err := viper.BindPFlag(keyHandleNonJSON, rootCmd.PersistentFlags().Lookup(keyHandleNonJSON)); err != nil {
+		fmt.Fprintf(os.Stderr, "Error binding flag %s: %v\n", keyHandleNonJSON, err)
 	}
 
 	// Set environment variable prefix
@@ -142,7 +147,10 @@ func runLogista(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	return tmplFormatter.ProcessStream(os.Stdin, os.Stdout, tmplFormatter, skipPatterns)
+	// Get the handleNonJSON flag value
+	handleNonJSON := viper.GetBool(keyHandleNonJSON)
+
+	return tmplFormatter.ProcessStream(os.Stdin, os.Stdout, tmplFormatter, skipPatterns, handleNonJSON)
 }
 
 // Execute runs the root command
