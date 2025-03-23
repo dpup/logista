@@ -68,6 +68,9 @@ my-server | logista --skip level=debug --skip level=trace        # Skip debug an
 my-server | logista --skip logger=Uploader.download              # Skip logs from specific component
 my-server | logista --skip level=error --skip logger=Worker      # Skip multiple patterns
 
+# Handle non-JSON data in the input stream (e.g., stack traces or other text mixed with JSON logs)
+my-server | logista --handle_non_json                            # Show non-JSON lines with a red prefix
+
 # Help
 logista --help
 ```
@@ -201,6 +204,7 @@ Logista supports configuration via command-line flags, environment variables, an
 --date_format string         Preferred date format for the date function (default "2006-01-02 15:04:05")
 --enable_simple_syntax       Enable simple {field} syntax in templates (default true)
 --format string              Format template (default "{{.timestamp | date}} {{.level}} {{.message}}")
+--handle_non_json            Gracefully handle non-JSON data in the input stream
 --no_colors                  Disable colored output
 --skip stringSlice           Skip log records matching key=value pairs (can be specified multiple times)
 ```
@@ -214,6 +218,7 @@ LOGISTA_CONFIG               Path to config file
 LOGISTA_DATE_FORMAT          Preferred date format for the date function
 LOGISTA_ENABLE_SIMPLE_SYNTAX Enable simple {field} syntax in templates
 LOGISTA_FORMAT               Format template
+LOGISTA_HANDLE_NON_JSON      Gracefully handle non-JSON data (set to "true")
 LOGISTA_NO_COLORS            Disable colored output (set to "true")
 LOGISTA_SKIP                 Skip log records matching key=value pairs (comma-separated list)
 ```
@@ -236,6 +241,9 @@ no_colors: false
 
 # Enable simple {field} syntax in templates
 enable_simple_syntax: true
+
+# Gracefully handle non-JSON data
+handle_non_json: true
 
 # Skip log records matching key=value pairs
 skip:
