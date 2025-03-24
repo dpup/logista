@@ -66,6 +66,22 @@ release:
 		echo "Error: VERSION is required. Use 'make release VERSION=x.y.z'"; \
 		exit 1; \
 	fi
+	@if [ -n "$(shell git status --porcelain)" ]; then \
+		echo "Error: There are uncommitted changes. Please commit or stash them before releasing."; \
+		exit 1; \
+	fi
+	@if git rev-parse "v$(VERSION)" >/dev/null 2>&1; then \
+		echo "Error: Tag v$(VERSION) already exists."; \
+		exit 1; \
+	fi
+	@if [ "$(shell git rev-parse --abbrev-ref HEAD)" != "main" ]; then \
+		echo "Error: Releases can only be created from the main branch."; \
+		exit 1; \
+	fi
+	@printf "%s" "$(VERSION)" > internal/version/version.txt
+	git add internal/version/version.txt
+	git commit -m "Update version to $(VERSION)"
+	git push origin main
 	git tag -a v$(VERSION) -m "Release $(VERSION)"
 	git push origin v$(VERSION)
 	@echo "Release v$(VERSION) tag pushed to GitHub."

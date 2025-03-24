@@ -3,6 +3,7 @@ project_name: logista
 before:
   hooks:
     - go mod tidy
+    - printf "%s" "{{.Version}}" > internal/version/version.txt
 
 builds:
   - env:
