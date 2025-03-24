@@ -6,13 +6,11 @@ import (
 	"strings"
 
 	"github.com/dpup/logista/internal/formatter"
+	"github.com/dpup/logista/internal/version"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
-
-// Version is set during build
-var version = "dev"
 
 // Default format template
 const defaultFormat = "{{.timestamp | date}} {{.level}} {{.message}}"
@@ -35,7 +33,7 @@ var rootCmd = &cobra.Command{
 	Long: `Logista is a CLI tool that accepts a stream of JSON log entries 
 and formats them according to a specified template.`,
 	RunE:    runLogista,
-	Version: version,
+	Version: version.Version,
 }
 
 var cfgFile string

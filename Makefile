@@ -5,13 +5,14 @@ BINARY_NAME=logista
 DIST_DIR=dist
 MAIN_PACKAGE=.
 VERSION=$(shell git describe --tags --always 2>/dev/null || echo "dev")
-BUILD_FLAGS=-ldflags "-X main.version=${VERSION}"
+BUILD_FLAGS=-ldflags "-X github.com/dpup/logista/internal/version.Version=${VERSION}"
 GOPATH=$(shell go env GOPATH)
 
 # Build the binary
 build:
 	mkdir -p ${DIST_DIR}
-	go build ${BUILD_FLAGS} -o ${DIST_DIR}/${BINARY_NAME} ${MAIN_PACKAGE}
+	go build ${BUILD_FLAGS} \
+	-o ${DIST_DIR}/${BINARY_NAME} ${MAIN_PACKAGE}
 
 # Clean build artifacts
 clean:
@@ -57,7 +58,7 @@ fmt-check:
 
 # Install the binary
 install:
-	go install ${BUILD_FLAGS}
+	go install ${BUILD_FLAGS} ${MAIN_PACKAGE}
 
 # Create a new release (push tag to GitHub to trigger GitHub Actions)
 release:
