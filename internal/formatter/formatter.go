@@ -94,6 +94,8 @@ func NewTemplateFormatterWithOptions(format string, preprocessOptions PreProcess
 		"duration": formatter.durationFunc,
 		"wrap":     formatter.wrapFunc,
 		"trunc":    formatter.truncFunc,
+		"mult":     formatter.multFunc,
+		"printf":   formatter.printfFunc,
 
 		// Color functions
 		"color":        formatter.colorFunc,
@@ -721,6 +723,76 @@ func (f *TemplateFormatter) wrapFunc(width, indent, value interface{}) string {
 	}
 
 	return result.String()
+}
+
+// multFunc is a template function that multiplies a number by the given value
+// If either the argument or the value is not numeric, it returns "NaN"
+// Usage: {{.value | mult 10}}
+func (f *TemplateFormatter) multFunc(arg, value interface{}) string {
+	// Handle nil cases
+	if arg == nil || value == nil {
+		return "NaN"
+	}
+
+	// Try to convert both arg and value to float64
+	var argFloat, valFloat float64
+	var err1, err2 error
+
+	switch a := arg.(type) {
+	case int:
+		argFloat = float64(a)
+	case int64:
+		argFloat = float64(a)
+	case float64:
+		argFloat = a
+	case json.Number:
+		argFloat, err1 = a.Float64()
+	default:
+		// Try to parse from string representation
+		argFloat, err1 = strconv.ParseFloat(fmt.Sprintf("%v", a), 64)
+	}
+
+	switch v := value.(type) {
+	case int:
+		valFloat = float64(v)
+	case int64:
+		valFloat = float64(v)
+	case float64:
+		valFloat = v
+	case json.Number:
+		valFloat, err2 = v.Float64()
+	default:
+		// Try to parse from string representation
+		valFloat, err2 = strconv.ParseFloat(fmt.Sprintf("%v", v), 64)
+	}
+
+	// If either conversion failed, return NaN
+	if err1 != nil || err2 != nil {
+		return "NaN"
+	}
+
+	result := argFloat * valFloat
+	
+	// Format the result based on whether it's an integer or has decimal places
+	if result == float64(int(result)) {
+		return fmt.Sprintf("%d", int(result))
+	}
+	return fmt.Sprintf("%.2f", result)
+}
+
+// printfFunc is a template function that applies formatting to a value using fmt.Sprintf
+// Usage: {{.value | printf "%.2f"}}
+func (f *TemplateFormatter) printfFunc(format, value interface{}) string {
+	if format == nil || value == nil {
+		return fmt.Sprintf("%v", value)
+	}
+
+	formatStr, ok := format.(string)
+	if !ok {
+		formatStr = fmt.Sprintf("%v: %%s", format)
+	}
+
+	return fmt.Sprintf(formatStr, value)
 }
 
 // Format formats the data according to the template

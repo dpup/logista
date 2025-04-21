@@ -250,6 +250,208 @@ func TestProcessStream(t *testing.T) {
 	}
 }
 
+func TestMultFunction(t *testing.T) {
+	tests := []struct {
+		name     string
+		arg      interface{}
+		value    interface{}
+		expected string
+	}{
+		{
+			name:     "integer * integer",
+			arg:      5,
+			value:    10,
+			expected: "50",
+		},
+		{
+			name:     "float * integer",
+			arg:      2.5,
+			value:    4,
+			expected: "10",
+		},
+		{
+			name:     "integer * float",
+			arg:      3,
+			value:    1.5,
+			expected: "4.50",
+		},
+		{
+			name:     "float * float",
+			arg:      2.5,
+			value:    3.5,
+			expected: "8.75",
+		},
+		{
+			name:     "string number * integer",
+			arg:      "5",
+			value:    10,
+			expected: "50",
+		},
+		{
+			name:     "integer * string number",
+			arg:      5,
+			value:    "10",
+			expected: "50",
+		},
+		{
+			name:     "json.Number * integer",
+			arg:      json.Number("5"),
+			value:    10,
+			expected: "50",
+		},
+		{
+			name:     "non-numeric arg",
+			arg:      "abc",
+			value:    10,
+			expected: "NaN",
+		},
+		{
+			name:     "non-numeric value",
+			arg:      5,
+			value:    "xyz",
+			expected: "NaN",
+		},
+		{
+			name:     "nil arg",
+			arg:      nil,
+			value:    10,
+			expected: "NaN",
+		},
+		{
+			name:     "nil value",
+			arg:      5,
+			value:    nil,
+			expected: "NaN",
+		},
+	}
+
+	formatter := &TemplateFormatter{}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := formatter.multFunc(tt.arg, tt.value)
+			if result != tt.expected {
+				t.Errorf("multFunc(%v, %v) = %v, want %v", tt.arg, tt.value, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestPrintfFunction(t *testing.T) {
+	tests := []struct {
+		name     string
+		format   interface{}
+		value    interface{}
+		expected string
+	}{
+		{
+			name:     "integer with decimal format",
+			format:   "%.2f",
+			value:    10,
+			expected: "%!f(int=10)",
+		},
+		{
+			name:     "float with precision",
+			format:   "%.1f",
+			value:    3.14159,
+			expected: "3.1",
+		},
+		{
+			name:     "string with padding",
+			format:   "%-10s",
+			value:    "test",
+			expected: "test      ",
+		},
+		{
+			name:     "multiple values in format string",
+			format:   "%s: %d",
+			value:    "count",
+			expected: "count: %!d(MISSING)",
+		},
+		{
+			name:     "nil format",
+			format:   nil,
+			value:    "test",
+			expected: "test",
+		},
+		{
+			name:     "nil value",
+			format:   "%.2f",
+			value:    nil,
+			expected: "<nil>",
+		},
+		{
+			name:     "non-string format",
+			format:   123,
+			value:    "test",
+			expected: "123: test",
+		},
+	}
+
+	formatter := &TemplateFormatter{}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := formatter.printfFunc(tt.format, tt.value)
+			if result != tt.expected {
+				t.Errorf("printfFunc(%v, %v) = %v, want %v", tt.format, tt.value, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestTemplateWithNewFunctions(t *testing.T) {
+	tests := []struct {
+		name     string
+		template string
+		data     map[string]interface{}
+		expected string
+	}{
+		{
+			name:     "mult function with integers",
+			template: "{{.value | mult 5}}",
+			data:     map[string]interface{}{"value": 10},
+			expected: "50",
+		},
+		{
+			name:     "mult function with non-numeric value",
+			template: "{{.value | mult 5}}",
+			data:     map[string]interface{}{"value": "abc"},
+			expected: "NaN",
+		},
+		{
+			name:     "printf function with float format",
+			template: "{{.value | printf \"%.2f\"}}",
+			data:     map[string]interface{}{"value": 3.14159},
+			expected: "3.14",
+		},
+		{
+			name:     "printf function with string format",
+			template: "{{.value | printf \"Value: %s\"}}",
+			data:     map[string]interface{}{"value": "test"},
+			expected: "Value: test",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			formatter, err := NewTemplateFormatter(tt.template)
+			if err != nil {
+				t.Fatalf("Failed to create formatter: %v", err)
+			}
+
+			result, err := formatter.Format(tt.data)
+			if err != nil {
+				t.Fatalf("Format error: %v", err)
+			}
+
+			if result != tt.expected {
+				t.Errorf("Format result = %q, want %q", result, tt.expected)
+			}
+		})
+	}
+}
+
 func TestProcessStreamWithNonJSON(t *testing.T) {
 	tests := []struct {
 		name            string
