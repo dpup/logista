@@ -642,3 +642,106 @@ func TestComparisonFunctions(t *testing.T) {
 		})
 	}
 }
+
+func TestIssetFunction(t *testing.T) {
+	type TestStruct struct {
+		Name  string
+		Email string
+		Age   int
+	}
+
+	tests := []struct {
+		name     string
+		template string
+		data     map[string]interface{}
+		expected string
+	}{
+		{
+			name:     "isset function with existing field in map",
+			template: "{{if isset \"value\" .}}exists{{else}}not exists{{end}}",
+			data:     map[string]interface{}{"value": 10},
+			expected: "exists",
+		},
+		{
+			name:     "isset function with non-existing field in map",
+			template: "{{if isset \"missing\" .}}exists{{else}}not exists{{end}}",
+			data:     map[string]interface{}{"value": 10},
+			expected: "not exists",
+		},
+		{
+			name:     "isset function with multiple fields",
+			template: "{{if isset \"name\" .}}Name exists{{else}}Name missing{{end}} and {{if isset \"age\" .}}Age exists{{else}}Age missing{{end}}",
+			data:     map[string]interface{}{"name": "Test", "email": "test@example.com"},
+			expected: "Name exists and Age missing",
+		},
+		{
+			name:     "isset function with nil value",
+			template: "{{if isset \"value\" .}}exists{{else}}not exists{{end}}",
+			data:     map[string]interface{}{"value": nil},
+			expected: "exists", // The field exists, even though its value is nil
+		},
+		{
+			name:     "isset function with nil data",
+			template: "{{if isset \"value\" nil}}exists{{else}}not exists{{end}}",
+			data:     map[string]interface{}{},
+			expected: "not exists",
+		},
+		{
+			name:     "isset function with nested field",
+			template: "{{if isset \"user\" .}}user exists{{else}}user missing{{end}} and {{if isset \"name\" .user}}name exists{{else}}name missing{{end}}",
+			data:     map[string]interface{}{"user": map[string]interface{}{"name": "John"}},
+			expected: "user exists and name exists",
+		},
+		{
+			name:     "isset function with empty string as field name",
+			template: "{{if isset \"\" .}}empty key exists{{else}}empty key missing{{end}}",
+			data:     map[string]interface{}{"": "empty key value"},
+			expected: "empty key exists",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			formatter, err := NewTemplateFormatter(tt.template)
+			if err != nil {
+				t.Fatalf("Failed to create formatter: %v", err)
+			}
+
+			result, err := formatter.Format(tt.data)
+			if err != nil {
+				t.Fatalf("Formatter.Format() error = %v", err)
+			}
+
+			if result != tt.expected {
+				t.Errorf("Format result = %q, want %q", result, tt.expected)
+			}
+		})
+	}
+
+	// Test isset function directly with a struct (can't be tested via template easily)
+	t.Run("isset function with struct", func(t *testing.T) {
+		formatter := &TemplateFormatter{}
+		testStruct := TestStruct{Name: "Test", Email: "test@example.com", Age: 30}
+
+		if !formatter.issetFunc("Name", testStruct) {
+			t.Error("Expected Name field to exist in struct")
+		}
+
+		if !formatter.issetFunc("Email", testStruct) {
+			t.Error("Expected Email field to exist in struct")
+		}
+
+		if !formatter.issetFunc("Age", testStruct) {
+			t.Error("Expected Age field to exist in struct")
+		}
+
+		if formatter.issetFunc("Address", testStruct) {
+			t.Error("Expected Address field to not exist in struct")
+		}
+
+		// Test with pointer to struct
+		if !formatter.issetFunc("Name", &testStruct) {
+			t.Error("Expected Name field to exist in struct pointer")
+		}
+	})
+}

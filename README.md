@@ -133,6 +133,7 @@ Or using full Go template syntax:
 | **ne**  | Checks if two values are not equal. | `{{if ne .status 200}}Failed{{end}}` |
 | **gt**  | Checks if a value is greater than another. | `{{if gt .count 10}}High usage{{end}}` |
 | **lt**  | Checks if a value is less than another. | `{{if lt .duration 100}}Fast{{end}}` |
+| **isset** | Checks if a field exists in a map or struct. Takes a field name (string) and the data to check. | `{{if isset "email" .user}}Has email{{end}}` |
 
 ### Color Functions
 
@@ -199,6 +200,20 @@ WARNING: {{.message | bold | color "yellow"}}
 SLOW: {{.message}} ({{.responseTime}}ms)
 {{else}}
 {{.level}}: {{.message}}
+{{end}}
+```
+
+Using the `isset` function to check for field existence:
+
+```go
+{{if isset "user" .}}
+  {{if isset "email" .user}}
+    User: {{.user.name}} ({{.user.email}})
+  {{else}}
+    User: {{.user.name}} (No email provided)
+  {{end}}
+{{else}}
+  No user information
 {{end}}
 ```
 

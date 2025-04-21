@@ -104,6 +104,9 @@ func NewTemplateFormatterWithOptions(format string, preprocessOptions PreProcess
 		"gt": formatter.gtFunc,
 		"lt": formatter.ltFunc,
 
+		// Field existence checking
+		"isset": formatter.issetFunc,
+
 		// Color functions
 		"color":        formatter.colorFunc,
 		"colorByLevel": formatter.colorByLevelFunc,
@@ -885,6 +888,31 @@ func toFloat64(v interface{}) (float64, bool) {
 	}
 
 	return 0, false
+}
+
+// issetFunc is a template function that checks if a field exists on a struct or in a map
+// Usage: {{if isset "Email" .}}Email exists{{end}}
+func (f *TemplateFormatter) issetFunc(name string, data interface{}) bool {
+	// Handle nil data
+	if data == nil {
+		return false
+	}
+
+	// Check map type first (most common in JSON logs)
+	if m, ok := data.(map[string]interface{}); ok {
+		_, exists := m[name]
+		return exists
+	}
+
+	// Handle structs using reflection
+	v := reflect.ValueOf(data)
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+	if v.Kind() != reflect.Struct {
+		return false
+	}
+	return v.FieldByName(name).IsValid()
 }
 
 // Format formats the data according to the template
