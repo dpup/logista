@@ -536,3 +536,109 @@ func TestProcessStreamWithNonJSON(t *testing.T) {
 		})
 	}
 }
+
+func TestComparisonFunctions(t *testing.T) {
+	tests := []struct {
+		name     string
+		template string
+		data     map[string]interface{}
+		expected string
+	}{
+		{
+			name:     "eq function with equal integers",
+			template: "{{if eq .value 10}}equal{{else}}not equal{{end}}",
+			data:     map[string]interface{}{"value": 10},
+			expected: "equal",
+		},
+		{
+			name:     "eq function with unequal integers",
+			template: "{{if eq .value 20}}equal{{else}}not equal{{end}}",
+			data:     map[string]interface{}{"value": 10},
+			expected: "not equal",
+		},
+		{
+			name:     "ne function with equal integers",
+			template: "{{if ne .value 10}}not equal{{else}}equal{{end}}",
+			data:     map[string]interface{}{"value": 10},
+			expected: "equal",
+		},
+		{
+			name:     "ne function with unequal integers",
+			template: "{{if ne .value 20}}not equal{{else}}equal{{end}}",
+			data:     map[string]interface{}{"value": 10},
+			expected: "not equal",
+		},
+		{
+			name:     "gt function with greater value",
+			template: "{{if gt .value 5}}greater{{else}}not greater{{end}}",
+			data:     map[string]interface{}{"value": 10},
+			expected: "greater",
+		},
+		{
+			name:     "gt function with equal value",
+			template: "{{if gt .value 10}}greater{{else}}not greater{{end}}",
+			data:     map[string]interface{}{"value": 10},
+			expected: "not greater",
+		},
+		{
+			name:     "gt function with lesser value",
+			template: "{{if gt .value 15}}greater{{else}}not greater{{end}}",
+			data:     map[string]interface{}{"value": 10},
+			expected: "not greater",
+		},
+		{
+			name:     "lt function with greater value",
+			template: "{{if lt .value 15}}less{{else}}not less{{end}}",
+			data:     map[string]interface{}{"value": 10},
+			expected: "less",
+		},
+		{
+			name:     "lt function with equal value",
+			template: "{{if lt .value 10}}less{{else}}not less{{end}}",
+			data:     map[string]interface{}{"value": 10},
+			expected: "not less",
+		},
+		{
+			name:     "lt function with lesser value",
+			template: "{{if lt .value 5}}less{{else}}not less{{end}}",
+			data:     map[string]interface{}{"value": 10},
+			expected: "not less",
+		},
+		{
+			name:     "eq function with strings",
+			template: "{{if eq .message \"test\"}}equal{{else}}not equal{{end}}",
+			data:     map[string]interface{}{"message": "test"},
+			expected: "equal",
+		},
+		{
+			name:     "eq function with nil values",
+			template: "{{if eq .value nil}}equal to nil{{else}}not nil{{end}}",
+			data:     map[string]interface{}{"value": nil},
+			expected: "equal to nil",
+		},
+		{
+			name:     "eq function with mixed number formats",
+			template: "{{if eq .value \"10\"}}equal{{else}}not equal{{end}}",
+			data:     map[string]interface{}{"value": 10},
+			expected: "equal",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			formatter, err := NewTemplateFormatter(tt.template)
+			if err != nil {
+				t.Fatalf("Failed to create formatter: %v", err)
+			}
+
+			result, err := formatter.Format(tt.data)
+			if err != nil {
+				t.Fatalf("Formatter.Format() error = %v", err)
+			}
+
+			if result != tt.expected {
+				t.Errorf("Format result = %q, want %q", result, tt.expected)
+			}
+		})
+	}
+}

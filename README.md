@@ -125,6 +125,15 @@ Or using full Go template syntax:
 | **mult**   | Multiplies a numeric value by the provided argument. If either the value or argument is not numeric, returns "NaN".                                                                                                                                                                                                                                                                      | `{count \| mult 2}`                 |
 | **printf** | Formats a value using Go's `fmt.Sprintf` formatting. Takes a format string that follows Go's formatting syntax.                                                                                                                                                                                                                                                                          | `{value \| printf "%.2f"}`          |
 
+### Comparison Functions
+
+| Command | Description | Example |
+| ------- | ----------- | ------- |
+| **eq**  | Checks if two values are equal. Works with numbers, strings, and handles nil values. | `{{if eq .level "error"}}Error:{{end}}` |
+| **ne**  | Checks if two values are not equal. | `{{if ne .status 200}}Failed{{end}}` |
+| **gt**  | Checks if a value is greater than another. | `{{if gt .count 10}}High usage{{end}}` |
+| **lt**  | Checks if a value is less than another. | `{{if lt .duration 100}}Fast{{end}}` |
+
 ### Color Functions
 
 | Command          | Description                             | Example                           |
@@ -177,7 +186,20 @@ You can filter fields using wildcards and iterate over the results:
 {{range $key, $value := filter . "level" "timestamp" "msg" "grpc.*"}}
 {{$key}}: {{$value}}
 {{end}}
+```
 
+Using comparison functions for conditional formatting:
+
+```go
+{{if eq .level "error"}}
+ERROR: {{.message | bold | color "red"}}
+{{else if eq .level "warning"}}
+WARNING: {{.message | bold | color "yellow"}}
+{{else if gt .responseTime 1000}}
+SLOW: {{.message}} ({{.responseTime}}ms)
+{{else}}
+{{.level}}: {{.message}}
+{{end}}
 ```
 
 ## Structured Log Example

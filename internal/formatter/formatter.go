@@ -17,6 +17,7 @@ import (
 // Common constants
 const (
 	noValueStr = "<no value>"
+	nanStr     = "NaN"
 )
 
 // Formatter is an interface for formatting JSON log entries
@@ -96,6 +97,12 @@ func NewTemplateFormatterWithOptions(format string, preprocessOptions PreProcess
 		"trunc":    formatter.truncFunc,
 		"mult":     formatter.multFunc,
 		"printf":   formatter.printfFunc,
+
+		// Comparison functions
+		"eq": formatter.eqFunc,
+		"ne": formatter.neFunc,
+		"gt": formatter.gtFunc,
+		"lt": formatter.ltFunc,
 
 		// Color functions
 		"color":        formatter.colorFunc,
@@ -731,7 +738,7 @@ func (f *TemplateFormatter) wrapFunc(width, indent, value interface{}) string {
 func (f *TemplateFormatter) multFunc(arg, value interface{}) string {
 	// Handle nil cases
 	if arg == nil || value == nil {
-		return "NaN"
+		return nanStr
 	}
 
 	// Try to convert both arg and value to float64
@@ -768,11 +775,11 @@ func (f *TemplateFormatter) multFunc(arg, value interface{}) string {
 
 	// If either conversion failed, return NaN
 	if err1 != nil || err2 != nil {
-		return "NaN"
+		return nanStr
 	}
 
 	result := argFloat * valFloat
-	
+
 	// Format the result based on whether it's an integer or has decimal places
 	if result == float64(int(result)) {
 		return fmt.Sprintf("%d", int(result))
@@ -793,6 +800,91 @@ func (f *TemplateFormatter) printfFunc(format, value interface{}) string {
 	}
 
 	return fmt.Sprintf(formatStr, value)
+}
+
+// eqFunc is a template function that checks if two values are equal
+// Usage: {{eq .value "expected"}}
+func (f *TemplateFormatter) eqFunc(a, b interface{}) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+
+	// For number comparison, convert to float64 if possible
+	aNum, aIsFloat := toFloat64(a)
+	bNum, bIsFloat := toFloat64(b)
+
+	if aIsFloat && bIsFloat {
+		return aNum == bNum
+	}
+
+	// For string comparison
+	return fmt.Sprintf("%v", a) == fmt.Sprintf("%v", b)
+}
+
+// neFunc is a template function that checks if two values are not equal
+// Usage: {{ne .value "unexpected"}}
+func (f *TemplateFormatter) neFunc(a, b interface{}) bool {
+	return !f.eqFunc(a, b)
+}
+
+// gtFunc is a template function that checks if a value is greater than another
+// Usage: {{gt .value 10}}
+func (f *TemplateFormatter) gtFunc(a, b interface{}) bool {
+	// For number comparison, convert to float64 if possible
+	aNum, aIsFloat := toFloat64(a)
+	bNum, bIsFloat := toFloat64(b)
+
+	if aIsFloat && bIsFloat {
+		return aNum > bNum
+	}
+
+	// For string comparison
+	return fmt.Sprintf("%v", a) > fmt.Sprintf("%v", b)
+}
+
+// ltFunc is a template function that checks if a value is less than another
+// Usage: {{lt .value 10}}
+func (f *TemplateFormatter) ltFunc(a, b interface{}) bool {
+	// For number comparison, convert to float64 if possible
+	aNum, aIsFloat := toFloat64(a)
+	bNum, bIsFloat := toFloat64(b)
+
+	if aIsFloat && bIsFloat {
+		return aNum < bNum
+	}
+
+	// For string comparison
+	return fmt.Sprintf("%v", a) < fmt.Sprintf("%v", b)
+}
+
+// Helper function to convert a value to float64 if possible
+func toFloat64(v interface{}) (float64, bool) {
+	if v == nil {
+		return 0, false
+	}
+
+	switch val := v.(type) {
+	case int:
+		return float64(val), true
+	case int64:
+		return float64(val), true
+	case float64:
+		return val, true
+	case json.Number:
+		if f, err := val.Float64(); err == nil {
+			return f, true
+		}
+	default:
+		// Try to parse from string representation
+		if f, err := strconv.ParseFloat(fmt.Sprintf("%v", val), 64); err == nil {
+			return f, true
+		}
+	}
+
+	return 0, false
 }
 
 // Format formats the data according to the template
